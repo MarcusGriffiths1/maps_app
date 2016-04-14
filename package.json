@@ -1,0 +1,31 @@
+{
+  "name": "maps_app",
+  "version": "0.0.1",
+  "description": "Small Google Maps application",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarcusGriffiths1/maps_app.git"
+  },
+  "keywords": [
+    "maps"
+  ],
+  "author": "Marcus Griffiths",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MarcusGriffiths1/maps_app/issues"
+  },
+  "homepage": "https://github.com/MarcusGriffiths1/maps_app#readme",
+	"devDependencies": {
+    "grunt": ">=0.4.4",
+    "grunt-contrib-jshint": "latest",
+    "jshint-stylish": "latest",
+    "grunt-contrib-uglify": "latest",
+    "grunt-contrib-sass": "latest",
+    "grunt-contrib-cssmin": "latest",
+    "grunt-contrib-watch": "latest"
+  }
+}
