@@ -19,13 +19,11 @@
     "url": "https://github.com/MarcusGriffiths1/maps_app/issues"
   },
   "homepage": "https://github.com/MarcusGriffiths1/maps_app#readme",
-	"devDependencies": {
+  "devDependencies": {
     "grunt": ">=0.4.4",
-    "grunt-contrib-jshint": "latest",
-    "jshint-stylish": "latest",
-    "grunt-contrib-uglify": "latest",
-    "grunt-contrib-sass": "latest",
-    "grunt-contrib-cssmin": "latest",
-    "grunt-contrib-watch": "latest"
+    "grunt-contrib-concat": "^1.0.0",
+    "grunt-contrib-jshint": "^1.0.0",
+    "grunt-contrib-uglify": "^1.0.1",
+    "grunt-contrib-watch": "^1.0.0"
   }
 }
