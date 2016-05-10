@@ -1,0 +1,27 @@
+{
+  "name": "maps_app",
+  "description": "Small Google Maps application",
+  "main": "index.js",
+  "authors": [
+    "Marcus Griffiths"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "maps"
+  ],
+  "homepage": "https://github.com/MarcusGriffiths1/maps_app",
+  "moduleType": [],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "^2.2.3"
+  },
+  "devDependencies": {
+    "jquery": "^2.2.3"
+  }
+}

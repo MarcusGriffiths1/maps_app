@@ -21,8 +21,13 @@
   "homepage": "https://github.com/MarcusGriffiths1/maps_app#readme",
   "devDependencies": {
     "grunt": ">=0.4.4",
+    "grunt-bower-concat": "^1.0.0",
+    "grunt-browserify": "^5.0.0",
     "grunt-contrib-concat": "^1.0.0",
+    "grunt-contrib-connect": "^1.0.1",
+    "grunt-contrib-cssmin": "^1.0.1",
     "grunt-contrib-jshint": "^1.0.0",
+    "grunt-contrib-sass": "^1.0.0",
     "grunt-contrib-uglify": "^1.0.1",
     "grunt-contrib-watch": "^1.0.0"
   }
