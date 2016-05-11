@@ -1,7 +1,7 @@
 var poiData = [
 	{
 		"name": "Supermercados Coviran",
-		"type": ["supermarket"],
+		"type": "supermarket",
 		"description": "A supermarket offering all your grocery needs",
 		"website_url": "http://www.supermarket.com",
 		"coords": {
@@ -11,7 +11,7 @@ var poiData = [
 	},
 	{
 		"name": "Mercadona",
-		"type": ["supermarket"],
+		"type": "supermarket",
 		"description": "Tenerife&apos;s biggest supermarket",
 		"website_url": "http://www.mercadona.com",
 		"coords": {
@@ -21,7 +21,7 @@ var poiData = [
 	},
 	{
 		"name": "O&apos;Neill&apos;s Bar",
-		"type": ["bar"],
+		"type": "bar",
 		"description": "A lively Irish bar",
 		"website_url": "http://www.oneills.com",
 		"coords": {
@@ -31,7 +31,7 @@ var poiData = [
 	},
 	{
 		"name": "Claddagh Irish Bar",
-		"type": ["bar"],
+		"type": "bar",
 		"description": "Always a friendly atmosphere",
 		"website_url": "http://www.claddagh.com",
 		"coords": {
@@ -41,7 +41,7 @@ var poiData = [
 	},
 	{
 		"name": "Taylor&apos;s Lounge",
-		"type": ["bar"],
+		"type": "bar",
 		"description": "A cool bar and stuff",
 		"website_url": "http://www.taylors.com",
 		"coords": {
@@ -51,20 +51,24 @@ var poiData = [
 	}
 ];
 
+var options = {
+	infoWindow: 1,
+	customMarkers: {
+		path: './img/amenity_icons/',
+		zoom: '_icon_large',
+		icon: '_icon_small'
+	}
+};
+
 function initMap() {
 	var myMap = MapsApp.init('map', {
 			"lat": 28.050615,
 			"lng": -16.71212
 		},
 		poiData,
+		options,
 		'amenity-list'
-	)
-	.customMarkerIcons(
-		'./img/amenity_icons/', 
-		'_icon_small', 
-		'_icon_large'
 	);
-	
 }
 
 

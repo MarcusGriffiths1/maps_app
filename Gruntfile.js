@@ -10,7 +10,7 @@ module.exports = function(grunt) {
 		
 		concat: {
 			js: {
-				src: ['src/js/simplemap.js', 'src/js/multiplemarkermap.js', 'src/js/poilist.js','src/js/mapsapp.js', 'src/js/*.js'],
+				src: ['src/js/poimap.js', 'src/js/poilist.js','src/js/mapsapp.js', 'src/js/*.js'],
 				dest: 'src/concat/js/concat_scripts.js'
 			},
 			css: {

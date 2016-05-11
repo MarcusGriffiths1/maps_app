@@ -28,8 +28,8 @@ var PoiList = (function() {
 
 			HTML = '<ul id="poi-list">';
 
-			detailsArray.forEach(function(item, index) {
-				HTML += _makeListItemHTML(item);
+			detailsArray.forEach(function(poiDetail, index) {
+				HTML += _makeListItemHTML(poiDetail);
 				console.log(HTML);
 			});
 
@@ -37,10 +37,10 @@ var PoiList = (function() {
 			return HTML;
 		},
 
-		_makeListItemHTML = function makeListItemHTML(item) {
+		_makeListItemHTML = function makeListItemHTML(poiDetail) {
 			//TODO: make it dynamic!
-			var iconPath = "img/amenity_icons/bar_icon_large.png", //dynamic
-				title = "Sparky's Bar",
+			var iconPath = "img/amenity_icons/" + poiDetail.type[0] + "_icon_large.png", //dynamic
+				title = poiDetail.name,
 				distance = 0.2, //getDistance();
 				rating = 4,
 				HTML;
@@ -81,16 +81,3 @@ var PoiList = (function() {
 		init: init
 	};
 })();
-
-// changeIcon = function changeIcon(marker, iconPath, type, suffix, anchor) {
-
-// 			return function() {
-// 				var icon = { 
-// 					url: iconPath + type + suffix + '.png',
-// 					origin: new google.maps.Point(0, 0),
-// 					anchor: anchor
-// 				};
-
-// 				marker.setIcon(icon);
-// 			};
-// 		};

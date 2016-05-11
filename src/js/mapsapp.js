@@ -4,14 +4,14 @@ var MapsApp = (function(Map, List) {
 		theList,
 		poiArray,
 
-	init = function init(mapId, center, poiDetailsArray, listId) {
+	init = function init(mapId, center, poiDetailsArray, options, listId) {
 			
 		// Setup
-		theMap = Map.init(mapId, center, poiDetailsArray);
+		theMap = Map.init(mapId, center, poiDetailsArray, options);
 
-		poiArray = theMap.getPoiArray();
+		// poiArray = theMap.getPoiArray();
 
-		theList = List.init(listId, poiArray, theMap);
+		// theList = List.init(listId, poiArray, theMap);
 		
 		return this;
 	},
@@ -25,4 +25,4 @@ var MapsApp = (function(Map, List) {
 		customMarkerIcons: customMarkerIcons
 	};
 
-})(MultipleMarkerMap || {}, PoiList || {});
+})(PoiMap || {}, PoiList || {});
