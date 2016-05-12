@@ -390,9 +390,7 @@ var MapsApp = (function(Map, List) {
 		// Setup
 		theMap = Map.init(mapId, center, poiDetailsArray, options);
 
-		// poiArray = theMap.getPoiArray();
-
-		// theList = List.init(listId, poiArray, theMap);
+		// theList = List.init(listId, poiDetailsArray, theMap);
 		
 		return this;
 	},
