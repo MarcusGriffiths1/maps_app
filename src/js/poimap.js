@@ -14,13 +14,13 @@
 *
 * Parameters:
 * 
-* @id: string: The id of the container the map is to be 
+* @param id {string} - The id of the container the map is to be 
 * placed in
 *
-* @center: Object :The location of the main marker, containing 
+* @param center {Object} - The location of the main marker, containing 
 * two properties; 'lat' and 'lng';
 *
-* @poiDetailsArray: Array<Object>: An array of objects 
+* @param poiDetailsArray {Object[]} - An array of objects 
 * with details of each point of interest. The format of each 
 * object should be:
 * 
@@ -41,7 +41,7 @@
 * website_url to display. The type is required by the icons 
 * option, which will be explained below.
 *
-* @options: An object containing config for optional extras
+* @param options {Object} - An object containing config for optional extras
 * 
 * - options.infoWindow: boolean: true or false. Depends on the 
 *   addition of the parameters metioned above.

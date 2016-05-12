@@ -25,4 +25,5 @@ var MapsApp = (function(Map, List) {
 		customMarkerIcons: customMarkerIcons
 	};
 
+
 })(PoiMap || {}, PoiList || {});
