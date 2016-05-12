@@ -61,7 +61,9 @@ var options = {
 };
 
 function initMap() {
-	var myMap = MapsApp.init('map', {
+	var myMap = MapsApp.init(
+		'map', 
+		{
 			"lat": 28.050615,
 			"lng": -16.71212
 		},

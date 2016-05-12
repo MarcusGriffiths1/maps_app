@@ -109,6 +109,7 @@ var PoiMap = (function(document) {
 				if (options.customMarkers) {
 					_createCustomMarkers(options.customMarkers);
 				}
+
 			}
 
 			return this;
@@ -167,6 +168,15 @@ var PoiMap = (function(document) {
 				}
 			});
 		},
+
+		_resetMarkers = function resetMarkers(filter) {
+
+			_poiDetails.forEach(function(item, index) {
+				if (item.type !== filter) {
+					item.marker.setMap(_theMap);
+				}
+			});
+		}, 
 
 		_createCustomMarkers = function createCustomMarkers(settings) {
 
