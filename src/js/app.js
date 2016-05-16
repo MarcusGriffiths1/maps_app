@@ -31,7 +31,7 @@ var poiData = [
 	},
 	{
 		"name": "Claddagh Irish Bar",
-		"type": "bar",
+		"type": "restaurant",
 		"description": "Always a friendly atmosphere",
 		"website_url": "http://www.claddagh.com",
 		"coords": {
@@ -60,18 +60,17 @@ var options = {
 	}
 };
 
+var center = {
+	"lat": 28.050615,
+	"lng": -16.71212
+};
+
 function initMap() {
 	var myMap = MapsApp.init(
-		'map', 
-		{
-			"lat": 28.050615,
-			"lng": -16.71212
-		},
+		'map',
+		center,
 		poiData,
 		options,
 		'amenity-list'
 	);
 }
-
-
-

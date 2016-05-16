@@ -76,6 +76,7 @@ var PoiMap = (function(document) {
 		_centralMarker,
 		_poiDetails,
 		_bounds,
+		_customMarkersSettings,
 
 		init = function init(id, center, poiDetailsArray, options) {
 
@@ -107,7 +108,8 @@ var PoiMap = (function(document) {
 				}
 
 				if (options.customMarkers) {
-					_createCustomMarkers(options.customMarkers);
+					_customMarkersSettings = options.customMarkers;
+					_createCustomMarkers();
 				}
 
 			}
@@ -182,18 +184,18 @@ var PoiMap = (function(document) {
 			});
 		},
 
-		_createCustomMarkers = function createCustomMarkers(settings) {
+		_createCustomMarkers = function createCustomMarkers() {
 
 			_poiDetails.forEach(function(poi, index) {
 				var type = poi.type;
 				var marker = poi.marker;
 
 				// Set standard icons
-				_changeIcon(marker, settings.path, type, settings.icon).call();
+				changeIcon(marker, type, false).call();
 
-				if (settings.zoom) {
-					marker.addListener('mouseover', _changeIcon(marker, settings.path, type, settings.zoom, new google.maps.Point(14, 20)));
-					marker.addListener('mouseout', _changeIcon(marker, settings.path, type, settings.icon));
+				if (_customMarkersSettings.zoom) {
+					marker.addListener('mouseover', changeIcon(marker, type, true, new google.maps.Point(14, 20)));
+					marker.addListener('mouseout', changeIcon(marker, type, false));
 				}
 			});
 		},
@@ -202,11 +204,14 @@ var PoiMap = (function(document) {
 		// feeding parameters to the function (it gets called immediately).
 		// Currying to the rescue, this function is partially applied so needs to be
 		// .call()...ed when used outside of an event listener.
-		_changeIcon = function changeIcon(marker, iconPath, type, suffix, anchor) {
+		changeIcon = function changeIcon(marker, type, zoom, anchor) {
 
 			return function() {
+
+				var iconImg = zoom ? _customMarkersSettings.zoom : _customMarkersSettings.icon;
+
 				var icon = {
-					url: iconPath + type + suffix + '.png',
+					url: _customMarkersSettings.path + type + iconImg + '.png',
 					origin: new google.maps.Point(0, 0),
 					anchor: anchor
 				};
@@ -222,7 +227,7 @@ var PoiMap = (function(document) {
 			});
 		},
 
-		_createInfoWindow = function createInfoWindow(poiIndex) {
+		createInfoWindow = function createInfoWindow(poiIndex) {
 
 			var contentString = _createInfoWindowString(_poiDetails[poiIndex]);
 
@@ -253,7 +258,7 @@ var PoiMap = (function(document) {
 
 			_poiDetails.forEach(function(poi, index) {
 				poi.marker.addListener('click', function() {
-					_createInfoWindow(index);
+					createInfoWindow(index);
 				});
 			});
 		},
@@ -297,7 +302,9 @@ var PoiMap = (function(document) {
 
 	return {
 		init: init,
-		getPoiArray: getPoiArray
+		getPoiArray: getPoiArray,
+		changeIcon: changeIcon,
+		createInfoWindow: createInfoWindow
 	};
 
 })(document);

@@ -76,6 +76,7 @@ var PoiMap = (function(document) {
 		_centralMarker,
 		_poiDetails,
 		_bounds,
+		_customMarkersSettings,
 
 		init = function init(id, center, poiDetailsArray, options) {
 
@@ -107,7 +108,8 @@ var PoiMap = (function(document) {
 				}
 
 				if (options.customMarkers) {
-					_createCustomMarkers(options.customMarkers);
+					_customMarkersSettings = options.customMarkers;
+					_createCustomMarkers();
 				}
 
 			}
@@ -182,18 +184,18 @@ var PoiMap = (function(document) {
 			});
 		},
 
-		_createCustomMarkers = function createCustomMarkers(settings) {
+		_createCustomMarkers = function createCustomMarkers() {
 
 			_poiDetails.forEach(function(poi, index) {
 				var type = poi.type;
 				var marker = poi.marker;
 
 				// Set standard icons
-				_changeIcon(marker, settings.path, type, settings.icon).call();
+				changeIcon(marker, type, false).call();
 
-				if (settings.zoom) {
-					marker.addListener('mouseover', _changeIcon(marker, settings.path, type, settings.zoom, new google.maps.Point(14, 20)));
-					marker.addListener('mouseout', _changeIcon(marker, settings.path, type, settings.icon));
+				if (_customMarkersSettings.zoom) {
+					marker.addListener('mouseover', changeIcon(marker, type, true, new google.maps.Point(14, 20)));
+					marker.addListener('mouseout', changeIcon(marker, type, false));
 				}
 			});
 		},
@@ -202,11 +204,14 @@ var PoiMap = (function(document) {
 		// feeding parameters to the function (it gets called immediately).
 		// Currying to the rescue, this function is partially applied so needs to be
 		// .call()...ed when used outside of an event listener.
-		_changeIcon = function changeIcon(marker, iconPath, type, suffix, anchor) {
+		changeIcon = function changeIcon(marker, type, zoom, anchor) {
 
 			return function() {
+
+				var iconImg = zoom ? _customMarkersSettings.zoom : _customMarkersSettings.icon;
+
 				var icon = {
-					url: iconPath + type + suffix + '.png',
+					url: _customMarkersSettings.path + type + iconImg + '.png',
 					origin: new google.maps.Point(0, 0),
 					anchor: anchor
 				};
@@ -222,7 +227,7 @@ var PoiMap = (function(document) {
 			});
 		},
 
-		_createInfoWindow = function createInfoWindow(poiIndex) {
+		createInfoWindow = function createInfoWindow(poiIndex) {
 
 			var contentString = _createInfoWindowString(_poiDetails[poiIndex]);
 
@@ -253,7 +258,7 @@ var PoiMap = (function(document) {
 
 			_poiDetails.forEach(function(poi, index) {
 				poi.marker.addListener('click', function() {
-					_createInfoWindow(index);
+					createInfoWindow(index);
 				});
 			});
 		},
@@ -297,108 +302,97 @@ var PoiMap = (function(document) {
 
 	return {
 		init: init,
-		getPoiArray: getPoiArray
+		getPoiArray: getPoiArray,
+		changeIcon: changeIcon,
+		createInfoWindow: createInfoWindow
 	};
 
 })(document);
 
 var PoiList = (function() {
 
-	var init = function init(id, poiDetailsArray, map) {
+	var	_listId,
+			_poiDetails,
+			_theMap,
 
-		return this;
-	};
+			init = function init(id, poiDetailsArray, map) {
+
+				_listId = id;
+				_poiDetails = poiDetailsArray;
+				_theMap = map;
+
+				_createList();
+				_addListEventListeners();
+
+				return this;
+			},
+
+			_createList = function createList() {
+
+				var listHTML = _makeListHTML();
+
+				document.getElementById(_listId).innerHTML = listHTML;
+			},
+
+			_makeListHTML = function makeListHTML() {
+
+				var HTML;
+
+				HTML = '<ul id="poi-list">';
+
+				_poiDetails.forEach(function(poiDetail, index) {
+					HTML += _makeListItemHTML(poiDetail);
+				});
+
+				HTML += '</ul>';
+				return HTML;
+			},
+
+			_makeListItemHTML = function makeListItemHTML(poiDetail) {
+				//TODO: make it dynamic!
+				var iconPath = "img/amenity_icons/" + poiDetail.type[0] + "_icon_large.png", //dynamic
+						title = poiDetail.name,
+						distance = 0.2, //getDistance();
+						rating = 4,
+						HTML;
+
+				HTML = '<li>';
+				HTML += '<img class="poi-icon" src="' + iconPath + '">';
+				HTML += '<h3>' + title + '</h3>';
+				HTML += '<span class="poi-distance">' + distance + ' miles from you</span>';
+				HTML += '<span class="poi-rating">Rating: <span>' + rating + '</span></span>';
+				HTML += '</li>';
+
+				return HTML;
+			},
+
+			_addListEventListeners = function addListEventListeners() {
+				//TODO: refactor
+				var list = document.getElementById('poi-list').getElementsByTagName('li');
+
+				Array.prototype.forEach.call(list, function(item, index) {
+					item.addEventListener('mouseover', function() {
+
+						_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, true, new google.maps.Point(14, 20))();
+					});
+
+					item.addEventListener('mouseleave', function() {
+
+						_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, false)();
+					});
+
+					item.addEventListener('click', function() {
+
+						_theMap.createInfoWindow(index);
+					});
+				});
+			};
 
 	return {
 		init: init
 	};
 
 })();
-
-
-// var PoiList = (function() {
-//
-// 	var _listId,
-// 		_poiArray,
-// 		theMap,
-//
-// 		init = function init(listId, poiDetailsArray, map) {
-//
-// 			_listId = listId;
-// 			_poiArray = poiDetailsArray;
-// 			// markers = markerArray;
-// 			theMap = map;
-//
-// 			_createList();
-// 			_addListEventListeners();
-// 		},
-//
-// 		_createList = function createList() {
-//
-//
-// 			var listHTML = _makeListHTML(_poiArray);
-//
-// 			document.getElementById(_listId).innerHTML = listHTML;
-// 		},
-//
-// 		_makeListHTML = function makeListHTML(detailsArray) {
-// 			var HTML;
-//
-// 			HTML = '<ul id="poi-list">';
-//
-// 			detailsArray.forEach(function(poiDetail, index) {
-// 				HTML += _makeListItemHTML(poiDetail);
-// 				console.log(HTML);
-// 			});
-//
-// 			HTML += '</ul>';
-// 			return HTML;
-// 		},
-//
-// 		_makeListItemHTML = function makeListItemHTML(poiDetail) {
-// 			//TODO: make it dynamic!
-// 			var iconPath = "img/amenity_icons/" + poiDetail.type[0] + "_icon_large.png", //dynamic
-// 				title = poiDetail.name,
-// 				distance = 0.2, //getDistance();
-// 				rating = 4,
-// 				HTML;
-//
-// 			HTML = '<li>';
-// 			HTML += '<img class="poi-icon" src="' + iconPath + '">';
-// 			HTML += '<h3>' + title + '</h3>';
-// 			HTML += '<span class="poi-distance">' + distance + ' miles from you</span>';
-// 			HTML += '<span class="poi-rating">Rating: <span>' + rating + '</span></span>';
-// 			HTML += '</li>';
-//
-// 			return HTML;
-// 		},
-//
-// 		_addListEventListeners = function addListEventListeners() {
-// 			//TODO: refactor
-// 			var list = document.getElementById('poi-list').getElementsByTagName('li');
-//
-// 			Array.prototype.forEach.call(list, function(item, index) {
-// 				item.addEventListener('mouseover', function() {
-//
-// 					theMap.changeIcon(_poiArray[index].marker, './img/amenity_icons/', _poiArray[index].type[0], '_icon_large', new google.maps.Point(14, 20))();
-// 				});
-//
-// 				item.addEventListener('mouseleave', function() {
-//
-// 					theMap.changeIcon(_poiArray[index].marker, './img/amenity_icons/', _poiArray[index].type[0], '_icon_small')();
-// 				});
-//
-// 				item.addEventListener('click', function() {
-//
-// 					theMap.createInfoWindow(index);
-// 				});
-// 			});
-// 		};
-//
-// 	return {
-// 		init: init
-// 	};
-// })();
 
 var MapsApp = (function(Map, List) {
 
@@ -411,9 +405,11 @@ var MapsApp = (function(Map, List) {
 		// Setup
 		theMap = Map.init(mapId, center, poiDetailsArray, options);
 
-		poiArray = theMap.getPoiArray();
+		if (listId) {
+			poiArray = theMap.getPoiArray();
 
-		theList = List.init(listId, poiArray, theMap);
+			theList = List.init(listId, poiArray, theMap);
+		}
 
 		return this;
 	},
@@ -463,7 +459,7 @@ var poiData = [
 	},
 	{
 		"name": "Claddagh Irish Bar",
-		"type": "bar",
+		"type": "restaurant",
 		"description": "Always a friendly atmosphere",
 		"website_url": "http://www.claddagh.com",
 		"coords": {
@@ -492,18 +488,17 @@ var options = {
 	}
 };
 
+var center = {
+	"lat": 28.050615,
+	"lng": -16.71212
+};
+
 function initMap() {
 	var myMap = MapsApp.init(
-		'map', 
-		{
-			"lat": 28.050615,
-			"lng": -16.71212
-		},
+		'map',
+		center,
 		poiData,
 		options,
 		'amenity-list'
 	);
 }
-
-
-

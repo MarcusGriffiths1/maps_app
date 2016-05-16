@@ -9,9 +9,11 @@ var MapsApp = (function(Map, List) {
 		// Setup
 		theMap = Map.init(mapId, center, poiDetailsArray, options);
 
-		poiArray = theMap.getPoiArray();
+		if (listId) {
+			poiArray = theMap.getPoiArray();
 
-		theList = List.init(listId, poiArray, theMap);
+			theList = List.init(listId, poiArray, theMap);
+		}
 
 		return this;
 	},
