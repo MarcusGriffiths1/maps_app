@@ -5,12 +5,14 @@ var MapsApp = (function(Map, List) {
 		poiArray,
 
 	init = function init(mapId, center, poiDetailsArray, options, listId) {
-			
+
 		// Setup
 		theMap = Map.init(mapId, center, poiDetailsArray, options);
 
-		// theList = List.init(listId, poiDetailsArray, theMap);
-		
+		poiArray = theMap.getPoiArray();
+
+		theList = List.init(listId, poiArray, theMap);
+
 		return this;
 	},
 
