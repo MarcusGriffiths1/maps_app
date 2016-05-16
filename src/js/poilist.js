@@ -3,6 +3,7 @@ var PoiList = (function() {
 	var	_listId,
 			_poiDetails,
 			_theMap,
+			_list,
 
 			init = function init(id, poiDetailsArray, map) {
 
@@ -57,17 +58,18 @@ var PoiList = (function() {
 
 			_addListEventListeners = function addListEventListeners() {
 				//TODO: refactor
-				var list = document.getElementById('poi-list').getElementsByTagName('li');
+				_list = document.getElementById('poi-list').getElementsByTagName('li');
+				console.log(_list[0]);
 
-				Array.prototype.forEach.call(list, function(item, index) {
+				Array.prototype.forEach.call(_list, function(item, index) {
 					item.addEventListener('mouseover', function() {
 
-						_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, true, new google.maps.Point(14, 20))();
+						_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, true, new google.maps.Point(14, 20)).call();
 					});
 
 					item.addEventListener('mouseleave', function() {
 
-						_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, false)();
+						_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, false).call();
 					});
 
 					item.addEventListener('click', function() {
