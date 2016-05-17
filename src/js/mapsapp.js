@@ -1,31 +1,25 @@
 var MapsApp = (function(Map, List) {
 
-	var theMap,
-		theList,
-		poiArray,
+	var _theMap,
+		_theList,
+		_poiArray,
 
 	init = function init(mapId, center, poiDetailsArray, options, listId) {
 
 		// Setup
-		theMap = Map.init(mapId, center, poiDetailsArray, options);
+		_theMap = Map.init(mapId, center, poiDetailsArray, options);
 
 		if (listId) {
-			poiArray = theMap.getPoiArray();
+			_poiArray = _theMap.getPoiArray();
 
-			theList = List.init(listId, poiArray, theMap);
+			_theList = List.init(listId, _poiArray, _theMap);
 		}
 
 		return this;
-	},
-
-	customMarkerIcons = function customMarkerIcons(iconPath, smallSuffix, largeSuffix) {
-		theMap.customMarkerIcons(iconPath, smallSuffix, largeSuffix);
 	};
 
 	return {
-		init: init,
-		customMarkerIcons: customMarkerIcons
+		init: init
 	};
-
 
 })(PoiMap || {}, PoiList || {});

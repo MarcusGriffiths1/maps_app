@@ -14,6 +14,9 @@ var PoiList = (function() {
 				_createList();
 				_addListEventListeners();
 
+				// _filterListItem('bar');
+				// _filterListItem('restaurant');
+
 				return this;
 			},
 
@@ -40,7 +43,7 @@ var PoiList = (function() {
 
 			_makeListItemHTML = function makeListItemHTML(poiDetail) {
 				//TODO: make it dynamic!
-				var iconPath = "img/amenity_icons/" + poiDetail.type[0] + "_icon_large.png", //dynamic
+				var iconPath = "img/amenity_icons/" + poiDetail.type + "_icon_large.png", //dynamic
 						title = poiDetail.name,
 						distance = 0.2, //getDistance();
 						rating = 4,
@@ -56,21 +59,24 @@ var PoiList = (function() {
 				return HTML;
 			},
 
+			_filterListItem = function filterListItem(filter) {
+
+				_poiDetails.forEach(function(item, index) {
+					if (item.type == filter) {
+						_list[index].style.display = 'none';
+					}
+				});
+			},
+
 			_addListEventListeners = function addListEventListeners() {
 				//TODO: refactor
 				_list = document.getElementById('poi-list').getElementsByTagName('li');
 				console.log(_list[0]);
 
 				Array.prototype.forEach.call(_list, function(item, index) {
-					item.addEventListener('mouseover', function() {
+					item.addEventListener('mouseover', 	_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, true, new google.maps.Point(14, 20)));
 
-						_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, true, new google.maps.Point(14, 20)).call();
-					});
-
-					item.addEventListener('mouseleave', function() {
-
-						_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, false).call();
-					});
+					item.addEventListener('mouseleave', _theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, false));
 
 					item.addEventListener('click', function() {
 

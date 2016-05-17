@@ -112,6 +112,9 @@ var PoiMap = (function(document) {
 					_createCustomMarkers();
 				}
 
+				// _filterMarkers('bar');
+				// _filterMarkers('restaurant');
+
 			}
 
 			return this;
@@ -169,7 +172,7 @@ var PoiMap = (function(document) {
 		_filterMarkers = function filterMarkers(filter) {
 
 			_poiDetails.forEach(function(item, index) {
-				if (item.type !== filter) {
+				if (item.type === filter) {
 					item.marker.setMap(null);
 				}
 			});
