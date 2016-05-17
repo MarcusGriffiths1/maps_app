@@ -57,7 +57,7 @@ var PoiFilter = (function() {
 
       _makeFilterItemHTML = function makeFilterItemHTML(item) {
 
-        var HTML = '<input type="checkbox" name="filter" value= "' + item + '" checked>' + item;
+        var HTML = '<label for="' + item + '">' + item + '</label><input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
 
         return HTML;
       },
