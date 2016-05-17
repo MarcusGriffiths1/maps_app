@@ -169,20 +169,15 @@ var PoiMap = (function(document) {
 			_theMap.fitBounds(_bounds);
 		},
 
-		_filterMarkers = function filterMarkers(filter) {
+		filterMarkers = function filterMarkers(filter) {
 
 			_poiDetails.forEach(function(item, index) {
 				if (item.type === filter) {
-					item.marker.setMap(null);
-				}
-			});
-		},
-
-		_resetMarkers = function resetMarkers(filter) {
-
-			_poiDetails.forEach(function(item, index) {
-				if (item.type !== filter) {
-					item.marker.setMap(_theMap);
+					if (item.marker.getMap() !== null) {
+						item.marker.setMap(null);
+					} else {
+						item.marker.setMap(_theMap);
+					}
 				}
 			});
 		},
@@ -307,7 +302,8 @@ var PoiMap = (function(document) {
 		init: init,
 		getPoiArray: getPoiArray,
 		changeIcon: changeIcon,
-		createInfoWindow: createInfoWindow
+		createInfoWindow: createInfoWindow,
+		filterMarkers: filterMarkers
 	};
 
 })(document);

@@ -1,16 +1,16 @@
 module.exports = function(grunt) {
-	
+
 	grunt.initConfig({
-		
+
 		pkg: grunt.file.readJSON('package.json'),
-		
+
 		jshint: {
 			all: ['src/js/*.js']
 		},
-		
+
 		concat: {
 			js: {
-				src: ['src/js/poimap.js', 'src/js/poilist.js','src/js/mapsapp.js', 'src/js/*.js'],
+				src: ['src/js/poimap.js', 'src/js/poilist.js', 'src/js/poifilter.js', 'src/js/mapsapp.js', 'src/js/*.js'],
 				dest: 'src/concat/js/concat_scripts.js'
 			},
 			css: {
@@ -18,7 +18,7 @@ module.exports = function(grunt) {
 				dest: 'src/concat/css/concat_css.css'
 			}
 		},
-		
+
 		uglify: {
 			my_target: {
 				files: {
@@ -26,7 +26,7 @@ module.exports = function(grunt) {
 				}
 			}
 		},
-		
+
 		sass: {
 			dist: {
 				options: {
@@ -37,7 +37,7 @@ module.exports = function(grunt) {
 				}
 			}
 		},
-		
+
 		cssmin: {
 			target: {
 				files: {
@@ -45,7 +45,7 @@ module.exports = function(grunt) {
 				}
 			}
 		},
-		
+
 		connect: {
 			server: {
 				options: {
@@ -56,14 +56,14 @@ module.exports = function(grunt) {
 				}
 			}
 		},
-		
+
 		bower_concat: {
 			all: {
 				dest: 'dist/js/_bower.js',
 				cssDest: 'dist/css/_bower.css'
 			}
 		},
-		
+
 		watch: {
 			options: {
 				spawn: false,
@@ -84,7 +84,7 @@ module.exports = function(grunt) {
 		}
 
 	});
-	
+
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-contrib-jshint');
 	grunt.loadNpmTasks('grunt-contrib-concat');
@@ -96,7 +96,7 @@ module.exports = function(grunt) {
 
 	grunt.registerTask('javascript', ['jshint', 'concat', 'uglify']);
 	grunt.registerTask('css', ['sass', 'concat:css', 'cssmin']);
-	
+
 	grunt.registerTask('default', ['connect', 'bower_concat', 'javascript', 'css', 'watch']);
-	
+
 };

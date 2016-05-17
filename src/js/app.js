@@ -53,6 +53,7 @@ var poiData = [
 
 var options = {
 	infoWindow: 1,
+	filter: 1,
 	customMarkers: {
 		path: './img/amenity_icons/',
 		zoom: '_icon_large',
@@ -71,6 +72,7 @@ function initMap() {
 		center,
 		poiData,
 		options,
-		'amenity-list'
+		'amenity-list',
+		'filter-controls'
 	);
 }

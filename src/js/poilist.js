@@ -4,6 +4,7 @@ var PoiList = (function() {
 			_poiDetails,
 			_theMap,
 			_list,
+			_listItemDisplayValue,
 
 			init = function init(id, poiDetailsArray, map) {
 
@@ -25,6 +26,7 @@ var PoiList = (function() {
 				var listHTML = _makeListHTML();
 
 				document.getElementById(_listId).innerHTML = listHTML;
+
 			},
 
 			_makeListHTML = function makeListHTML() {
@@ -59,11 +61,15 @@ var PoiList = (function() {
 				return HTML;
 			},
 
-			_filterListItem = function filterListItem(filter) {
+			filterListItem = function filterListItem(filter) {
 
 				_poiDetails.forEach(function(item, index) {
 					if (item.type == filter) {
-						_list[index].style.display = 'none';
+						if (_list[index].style.display === 'none') {
+							_list[index].style.display = _listItemDisplayValue;
+						} else {
+							_list[index].style.display = 'none';
+						}
 					}
 				});
 			},
@@ -71,7 +77,7 @@ var PoiList = (function() {
 			_addListEventListeners = function addListEventListeners() {
 				//TODO: refactor
 				_list = document.getElementById('poi-list').getElementsByTagName('li');
-				console.log(_list[0]);
+				_listItemDisplayValue = _list[0].style.display;
 
 				Array.prototype.forEach.call(_list, function(item, index) {
 					item.addEventListener('mouseover', 	_theMap.changeIcon(_poiDetails[index].marker, _poiDetails[index].type, true, new google.maps.Point(14, 20)));
@@ -86,7 +92,8 @@ var PoiList = (function() {
 			};
 
 	return {
-		init: init
+		init: init,
+		filterListItem: filterListItem
 	};
 
 })();
