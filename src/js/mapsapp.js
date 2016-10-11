@@ -1,34 +1,55 @@
-var MapsApp = (function(Map, List, Filter) {
+import PoiFilter from './PoiFilter';
+import PoiList from './PoiList';
+import PoiMap from './PoiMap';
 
-	var _theMap,
-		_theList,
-		_poiArray,
-		_theFilter,
+class MapsApp {
 
-	init = function init(mapId, center, poiDetailsArray, options) {
-
+	constructor(mapId, center, poiDetailsArray, options) {
 		// Setup
-		_theMap = Map.init(mapId, center, poiDetailsArray, options);
+		this._mapId = mapId;
+		this._center = center;
+		this._poiArray = poiDetailsArray;
+		this._options = options;
 
-		_poiArray = _theMap.getPoiArray();
+		// google.maps.event.addDomListener(window, 'load', this.initialise);
+		this._initialise();
+	}
 
-		return this;
-	},
+	_initialise() {
+		// this._addPoiMarkers();
+		this._theMap = new PoiMap(this._mapId, this._center, this._poiArray, this._options);
+	}
 
-	createList = function createList(listId) {
+	createList(listId) {
+		this._theList = new PoiList(listId, this._poiArray, this._theMap);
+	}
 
-			_theList = List.init(listId, _poiArray, _theMap);
-	},
+	createFilter(filterId) {
+		this._theFilter = PoiFilter.init(filterId, this._poiArray, this._theMap, this._theList);
+	}
 
-	createFilter = function createFilter(filterId) {
+	_addMarkersToArray() {
+		this._poiArray.forEach
+	}
 
-		_theFilter = Filter.init(filterId, _poiArray, _theMap, _theList);
-	};
+	// // Creates and returns a new marker at the position given
+	// // Places the marker on the current map
+	// _createMarker(position) {
+	// 	return new google.maps.Marker({
+	// 		position: position,
+	// 		map: this._theMap
+	// 	});
+	// }
 
-	return {
-		init: init,
-		createList: createList,
-		createFilter: createFilter
-	};
+	// // Uses the poiArray to create markers for each item in the array,
+	// // this function also sets the bounds of the map to make sure the markers fit
+	// // TODO: potentially make this immutable/return state so poiArray can be synced across application
+	// // ^^^ Think about how Flux does it... maybe Pub/Sub?
+	// _addPoiMarkers() {
+	// 	this._poiArray.forEach((item, index) => {
+	// 		item.marker = this._createMarker(item.coords);
+	// 	});
+	// }
+}
 
-})(PoiMap || {}, PoiList || {}, PoiFilter || {});
+export default MapsApp;

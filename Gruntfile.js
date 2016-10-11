@@ -4,26 +4,10 @@ module.exports = function(grunt) {
 
 		pkg: grunt.file.readJSON('package.json'),
 
-		jshint: {
-			all: ['src/js/*.js']
-		},
-
 		concat: {
-			js: {
-				src: ['src/js/poimap.js', 'src/js/poilist.js', 'src/js/poifilter.js', 'src/js/mapsapp.js', 'src/js/*.js'],
-				dest: 'src/concat/js/concat_scripts.js'
-			},
 			css: {
 				src: 'src/css/*.css',
 				dest: 'src/concat/css/concat_css.css'
-			}
-		},
-
-		uglify: {
-			my_target: {
-				files: {
-					'dist/js/<%= pkg.name %>.min.js': ['src/concat/js/concat_scripts.js']
-				}
 			}
 		},
 
@@ -57,10 +41,14 @@ module.exports = function(grunt) {
 			}
 		},
 
-		bower_concat: {
-			all: {
-				dest: 'dist/js/_bower.js',
-				cssDest: 'dist/css/_bower.css'
+		browserify: {
+			dist: {
+				options: {
+					transform: [['babelify', {presets: ["es2015"]}]]
+				},
+				files: {
+					"./dist/js/maps_app.js": ["./src/js/index.js"]
+				}
 			}
 		},
 
@@ -71,11 +59,11 @@ module.exports = function(grunt) {
 			},
 			html: {
 				files: ['dist/*.html'],
-				tasks: ['javascript', 'css']
+				tasks: ['browserify', 'css']
 			},
 			scripts: {
 				files: ['src/js/*.js'],
-				tasks: ['javascript']
+				tasks: ['browserify']
 			},
 			css: {
 				files: ['src/sass/*.scss'],
@@ -86,17 +74,18 @@ module.exports = function(grunt) {
 	});
 
 	grunt.loadNpmTasks('grunt-contrib-watch');
-	grunt.loadNpmTasks('grunt-contrib-jshint');
+	// grunt.loadNpmTasks('grunt-contrib-jshint');
 	grunt.loadNpmTasks('grunt-contrib-concat');
-	grunt.loadNpmTasks('grunt-contrib-uglify');
+	// grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-sass');
 	grunt.loadNpmTasks('grunt-contrib-cssmin');
 	grunt.loadNpmTasks('grunt-contrib-connect');
-	grunt.loadNpmTasks('grunt-bower-concat');
+	// grunt.loadNpmTasks('grunt-bower-concat');
+	grunt.loadNpmTasks('grunt-browserify');
 
-	grunt.registerTask('javascript', ['jshint', 'concat', 'uglify']);
+	// grunt.registerTask('javascript', ['jshint', 'concat', 'uglify']);
 	grunt.registerTask('css', ['sass', 'concat:css', 'cssmin']);
 
-	grunt.registerTask('default', ['connect', 'bower_concat', 'javascript', 'css', 'watch']);
+	grunt.registerTask('default', ['connect', /*'javascript',*/ 'css', 'browserify', 'watch']);
 
 };

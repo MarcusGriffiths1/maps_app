@@ -12,14 +12,16 @@
 		<div class="map-container">
 			<div id="map"></div>
 		</div>
-		<div id="amenity-list"></div>
-		<h2>Filter</h2>
-		<div id="filter-controls"></div>
+		<div id="amenity-list">
+			<h2>Places</h2>
+		</div>
+		<div id="filter-controls">
+			<h2>Filter</h2>
+		</div> 
 	</div>
-
-	<script src="js/maps_app.min.js"></script>
-	<script src="https://maps.googleapis.com/maps/api/js?callback=initMap" async defer></script>
-	<script>
+ 
+	<script src="https://maps.googleapis.com/maps/api/js"></script>
+	<!-- <script>
 		function initMap() {
 
 			var myMap = MapsApp.init(
@@ -93,6 +95,8 @@
 			myMap.createList('amenity-list');
 			myMap.createFilter('filter-controls');
 		}
-	</script>
+
+	</script> -->
+	<script src="js/maps_app.js"></script>
 </body>
 </html>

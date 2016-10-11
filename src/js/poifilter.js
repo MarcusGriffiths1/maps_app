@@ -79,3 +79,5 @@ var PoiFilter = (function() {
     init: init
   };
 })();
+
+export default PoiFilter;

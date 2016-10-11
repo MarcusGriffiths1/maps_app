@@ -1,309 +1,227 @@
-/*
-* Name: Point of Interest Map
-* Dependencies: Browser, Google Maps JavaScript API
-* Author: Marcus Griffiths
-*
-* Initialising this module will provide a map with a
-* single main marker and separate markers indicating
-* points of interest.
-*
-* Current customisations include custom marker icons
-* (with an option for a secondary icon on hovering over
-* the point of interest) and an infowindow after clicking
-* a point of interest marker.
-*
-* Parameters:
-*
-* @param id {string} - The id of the container the map is to be
-* placed in
-*
-* @param center {Object} - The location of the main marker, containing
-* two properties; 'lat' and 'lng';
-*
-* @param poiDetailsArray {Object[]} - An array of objects
-* with details of each point of interest. The format of each
-* object should be:
-*
-* 	{
-*		"name": "Taylor&apos;s Lounge",
-*		"type": "bar",
-*		"description": "A cool bar and stuff",
-*		"website_url": "http://www.taylors.com",
-*		"coords": {
-*			"lat": 28.05176,
-*			"lng": -16.71619
-*		}
-*	}
-*
-* The only required parameters are the 'coords', however the
-* optional functionality requires further details.
-* Using the infowindow requires a name, description and
-* website_url to display. The type is required by the icons
-* option, which will be explained below.
-*
-* @param options {Object} - An object containing config for optional extras
-*
-* - options.infoWindow: boolean: true or false. Depends on the
-*   addition of the parameters metioned above.
-*
-* - options.customMarkers: Object: Contains 3 parameters, if
-*   provided will create paths to images provided and initialise
-*   custom markers.
-*   IMPORTANT: requires icon images to be in .png format and be
-*   prefixed with the type as in the 'type' parameter in the
-*   poiDetailsArray objects. The suffix of the icon files must
-*   be provided.
-*
-*      -> customMarkers.path: String: Path to folder containing custom
-*         icons.
-*      -> customMarkers.icon: String: Suffix to icon images.
-*         e.g. Filename: bar_icon.png. Where '_icon' is the suffix.
-*      -> customMarkers.zoom: String: Suffix to icon images when the
-*         marker is hovered over.
-*         e.g. Filename: bar_icon_hover.png. Where '_icon_hover' is
-*         the suffix.
-*
-*
-* TODOS:
-* - Add validation for POI data
-*/
+class PoiMap {
+	constructor(id, center, poiArray, options) {
+		// Validate data before proceeding
+		if (this._validateMapData(id, center)) {
 
-var PoiMap = (function(document) {
+			// Store all parameters in local properties
+			this._mapId = id;
+			this._mainLocation = center;
+			this._poiArray = poiArray;
 
-	var _theMap,
-		_mapId,
-		_centralLocation,
-		_centralMarker,
-		_poiDetails,
-		_bounds,
-		_customMarkersSettings,
+			// Create the map and provide reference to said map
+			this._theMap = this._createMap();
 
-		init = function init(id, center, poiDetailsArray, options) {
+			// Create central marker and provide reference
+			this._mainMarker = this._createMarker(this._mainLocation);
 
-			// Validate data before proceeding
-			if (_validateMapData(id, center)) {
+			// Create markers using poiArray and add them to each poi
+			this._addPoiMarkers();
 
-				// Store all parameters in local properties
-				_mapId = id;
-				_centralLocation = center;
-				_poiDetails = poiDetailsArray;
+			// Set optionals
 
-				// Create the map and provide reference to said map
-				_theMap = _createMap();
-
-				// Create central marker and provide reference
-				_centralMarker = _addMarker(_centralLocation);
-
-				// Create markers using list and add them to each poi detail
-				_createPoiMarkers();
-
-				// Set optionals
-
-				// If the data includes information for the infowindow initialise it
-				// and set click events
-				if (options.infoWindow) {
-					_setInfoWindow();
-					_addMarkerClickEvents();
-					_onDestroyInfoWindow();
-				}
-
-				if (options.customMarkers) {
-					_customMarkersSettings = options.customMarkers;
-					_createCustomMarkers();
-				}
-
-				// _filterMarkers('bar');
-				// _filterMarkers('restaurant');
-
+			// If the data includes information for the infowindow initialise it
+			// and set click events
+			if (options.infoWindow) {
+				this._setInfoWindow();
+				this._addMarkerClickEvents();
+				this._onDestroyInfoWindow();
 			}
 
-			return this;
-		},
-
-		getPoiArray = function getPoiArray() {
-			return _poiDetails;
-		},
-
-		_createMap = function createMap() {
-
-			var mapDiv = document.getElementById(_mapId),
-				map;
-
-			map = new google.maps.Map(mapDiv, {
-				center: _centralLocation,
-				scrollwheel: false,
-				zoom: 15
-			});
-
-			return map;
-		},
-
-		_addMarker = function addMarker(position) {
-
-			return new google.maps.Marker({
-				position: position,
-				map: _theMap
-			});
-		},
-
-		_createPoiMarkers = function createPoiMarkers() {
-
-			_poiDetails.forEach(function(item, index) {
-				item.marker = _addMarker(item.coords);
-			});
-
-			_setBounds();
-			_fitBounds();
-		},
-
-		_setBounds = function setBounds() {
-			_bounds = new google.maps.LatLngBounds();
-
-			for(var i = 0; i < _poiDetails.length; i++) {
-				_bounds.extend(_poiDetails[i].marker.getPosition());
+			// If the data includes information for custom markers initialise them
+			if (options.customMarkers) {
+				this._customMarkersSettings = options.customMarkers;
+				this._createCustomMarkers();
 			}
-		},
 
-		_fitBounds = function fitBounds() {
+		}
+	}
 
-			_theMap.fitBounds(_bounds);
-		},
+	// Creates and returns a new Google map. 
+	// Places the map inside DOM element with the provided ID  
+	_createMap() {
+		const mapDiv = document.getElementById(this._mapId);
 
-		filterMarkers = function filterMarkers(filter) {
+		const map = new google.maps.Map(mapDiv, {
+			center: this._mainLocation,
+			scrollwheel: false,
+			zoom: 15
+		});
 
-			_poiDetails.forEach(function(item, index) {
-				if (item.type === filter) {
-					if (item.marker.getMap() !== null) {
-						item.marker.setMap(null);
-					} else {
-						item.marker.setMap(_theMap);
-					}
-				}
+		return map;
+	}
+
+	// Creates and returns a new marker at the position given
+	// Places the marker on the current map
+	_createMarker(position) {
+		return new google.maps.Marker({
+			position: position,
+			map: this._theMap
+		});
+	}
+
+	// Uses the poiArray to create markers for each item in the array,
+	// this function also sets the bounds of the map to make sure the markers fit
+	// TODO: potentially make this immutable/return state so poiArray can be synced across application
+	// ^^^ Think about how Flux does it... maybe Pub/Sub?
+	_addPoiMarkers() {
+
+		this._poiArray.forEach((item, index) => {
+			item.marker = this._createMarker(item.coords);
+		});
+
+		this._setBounds();
+		this._fitBounds();
+	}
+
+	// Uses the poi markers to set the correct zoom level of the map
+	_setBounds() {
+		this._bounds = new google.maps.LatLngBounds();
+
+		for(var i = 0; i < this._poiArray.length; i++) {
+			this._bounds.extend(this._poiArray[i].marker.getPosition());
+		}
+	}
+
+	// Initiates the bounds set on the map
+	_fitBounds() {
+		this._theMap.fitBounds(this._bounds);
+	}
+
+	// -- Information window-specific functions
+
+	_setInfoWindow() {
+		this._infoWindow = new google.maps.InfoWindow({
+			maxWidth: 400
+		});
+	}
+
+	_addMarkerClickEvents() {
+		this._poiArray.forEach((poi, index) => {
+			poi.marker.addListener('click', () => {
+				this.createInfoWindow(index);
 			});
-		},
+		});
+	}
 
-		_createCustomMarkers = function createCustomMarkers() {
+	_composeInfoWindowString(poi) {
+		var HTMLString;
+		HTMLString = '<div id="maps-window">';
+		HTMLString += '<h3>' + poi.name + '</h3>';
+		HTMLString += '<a href="' + poi.website_url + '">' + poi.website_url + '</a>';
+		HTMLString += '<p>' + poi.description + '</p>';
+		HTMLString += '</div>';
 
-			_poiDetails.forEach(function(poi, index) {
-				var type = poi.type;
-				var marker = poi.marker;
+		return HTMLString;
+	}
 
-				// Set standard icons
-				changeIcon(marker, type, false).call();
+	_onDestroyInfoWindow() {
+		google.maps.event.addListener(this._infoWindow, 'closeclick', () => {
+			this._fitBounds();
+		});
+	}
 
-				if (_customMarkersSettings.zoom) {
-					marker.addListener('mouseover', changeIcon(marker, type, true, new google.maps.Point(14, 20)));
-					marker.addListener('mouseout', changeIcon(marker, type, false));
+	// -- Custom marker functions
+
+	_createCustomMarkers() {
+
+		this._poiArray.forEach((poi, index) => {
+			let type = poi.type;
+			let marker = poi.marker;
+
+			// Set standard icons
+			this.makeIcon(marker, type, false).call();
+
+			if (this._customMarkersSettings.zoom) {
+				marker.addListener('mouseover', this.makeIcon(marker, type, true, new google.maps.Point(14, 20)));
+				marker.addListener('mouseout', this.makeIcon(marker, type, false));
+			}
+		});
+	}
+
+	// -- Utility functions
+
+	_validateMapData(id, center) {
+		if (id) {
+			if (typeof id !== 'string') {
+				console.error('Error: Map ID must be a string');
+				return false;
+			}
+			if (!document.getElementById(id)) {
+				console.error('Error: Map ID must be part of the DOM!');
+				return false;
+			}
+		} else {
+			console.error('Error: No Map ID present');
+			return false;
+		}
+
+		if (center) {
+			if (center.lat && center.lng) {
+				if (typeof center.lat !== 'number' || typeof center.lng !== 'number') {
+					console.error('Error: Lattitude and longitude must be numbers');
+					return false;
 				}
-			});
-		},
+			} else {
+				console.error('Error: Please provide central location lattitude and longitude');
+				return false;
+			}
+		} else {
+			console.error('Error: No central location provided');
+			return false;
+		}
 
-		// Icons can be changed within event listeners, which causes problems when
-		// feeding parameters to the function (it gets called immediately).
-		// Currying to the rescue, this function is partially applied so needs to be
-		// .call()...ed when used outside of an event listener.
-		changeIcon = function changeIcon(marker, type, zoom, anchor) {
+		return true;
+	}
 
-			return function() {
+	// ----------------------- PUBLIC INTERFACE -------------------------------
 
-				var iconImg = zoom ? _customMarkersSettings.zoom : _customMarkersSettings.icon;
+	// Applys the map's infoWindow to the marker of the point of interest given
+	// TODO: Does this need to take a poi instead of an index? 
+	createInfoWindow(poiIndex) {
+		let poi = this._poiArray[poiIndex];
+		let contentString = this._composeInfoWindowString(poi);
 
-				var icon = {
-					url: _customMarkersSettings.path + type + iconImg + '.png',
-					origin: new google.maps.Point(0, 0),
-					anchor: anchor
-				};
+		this._infoWindow.setContent(contentString);
+		this._infoWindow.open(this._theMap, poi.marker);
+		this._theMap.panTo(poi.marker.getPosition());
+	}
 
-				marker.setIcon(icon);
+	// Icons will be changed within event listeners when the zoom option is applied,
+	// which causes problems when feeding parameters to the function (it gets called immediately).
+	// Currying to the rescue, this function is partially applied so needs to be
+	// .call()-ed when used outside of an event listener.
+	makeIcon(marker, type, zoom, anchor) {
+		return (() => {
+			var iconImg = zoom ? this._customMarkersSettings.zoom : this._customMarkersSettings.icon;
+
+			var icon = {
+				url: this._customMarkersSettings.path + type + iconImg + '.png',
+				origin: new google.maps.Point(0, 0),
+				anchor: anchor
 			};
-		},
 
-		_setInfoWindow = function setInfoWindow() {
+			marker.setIcon(icon);
+		});
+	}
 
-			_infoWindow = new google.maps.InfoWindow({
-				maxWidth: 400
-			});
-		},
-
-		createInfoWindow = function createInfoWindow(poiIndex) {
-
-			var contentString = _createInfoWindowString(_poiDetails[poiIndex]);
-
-			_infoWindow.setContent(contentString);
-			_infoWindow.open(_theMap, _poiDetails[poiIndex].marker);
-		},
-
-		_onDestroyInfoWindow = function _onDestroyInfoWindow() {
-
-			google.maps.event.addListener(_infoWindow, 'closeclick', function() {
-				_fitBounds();
-			});
-		},
-
-		_createInfoWindowString = function createInfoWindowString(poiDetail) {
-
-			var HTMLString;
-			HTMLString = '<div id="maps-window">';
-			HTMLString += '<h3>' + poiDetail.name + '</h3>';
-			HTMLString += '<a href="' + poiDetail.website_url + '">' + poiDetail.website_url + '</a>';
-			HTMLString += '<p>' + poiDetail.description + '</p>';
-			HTMLString += '</div>';
-
-			return HTMLString;
-		},
-
-		_addMarkerClickEvents = function _addMarkerClickEvents() {
-
-			_poiDetails.forEach(function(poi, index) {
-				poi.marker.addListener('click', function() {
-					createInfoWindow(index);
-				});
-			});
-		},
-
-		// Simple validation
-		_validateMapData = function validateMapData(id, center) {
-
-			if (id) {
-				if (typeof id !== 'string') {
-					console.error('Error: Map ID must be a string');
-					return false;
-				}
-				if (!document.getElementById(id)) {
-					console.error('Error: Map ID must be part of the DOM!');
-					return false;
-				}
-			} else {
-				console.error('Error: No Map ID present');
-				return false;
-			}
-
-			if (center) {
-				if (center.lat && center.lng) {
-					if (typeof center.lat !== 'number' || typeof center.lng !== 'number') {
-						console.error('Error: Lattitude and longitude must be numbers');
-						return false;
-					}
+	// Removes any markers from the map who's 'type' property matches the filter
+	// TODO: potentially make this immutable/return state so poiArray can be synced across application
+	// ^^^ Think about how Flux does it...
+	filterMarkers(filter) {
+		this._poiArray.forEach((item, index) => {
+			if (item.type === filter) {
+				if (item.marker.getMap() !== null) {
+					item.marker.setMap(null);
 				} else {
-					console.error('Error: Please provide central location lattitude and longitude');
-					return false;
+					item.marker.setMap(this._theMap);
 				}
-			} else {
-				console.error('Error: No central location provided');
-				return false;
 			}
+		});
+	}
 
-			return true;
-		};
+	getPoiArray() {
+		return this._poiArray;
+	}
+}
 
-
-
-	return {
-		init: init,
-		getPoiArray: getPoiArray,
-		changeIcon: changeIcon,
-		createInfoWindow: createInfoWindow,
-		filterMarkers: filterMarkers
-	};
-
-})(document);
+export default PoiMap;
