@@ -30,17 +30,22 @@ var MapsApp = function () {
 		// Setup
 		this._mapId = mapId;
 		this._center = center;
-		this._poiArray = poiDetailsArray;
+		this._poiArray = this._addPoiMarkers(poiDetailsArray);
 		this._options = options;
 
+		this._theMap = new _PoiMap2.default(this._mapId, this._center);
+		console.log(this._poiArray);
+
+		this._setPoiMarkers();
+
 		// google.maps.event.addDomListener(window, 'load', this.initialise);
-		this._initialise();
+		// this._initialise();
 	}
 
 	_createClass(MapsApp, [{
 		key: '_initialise',
 		value: function _initialise() {
-			this._addPoiMarkers();
+			// this._addPoiMarkers();
 			this._theMap = new _PoiMap2.default(this._mapId, this._center, this._poiArray, this._options);
 		}
 	}, {
@@ -54,35 +59,30 @@ var MapsApp = function () {
 			this._theFilter = _PoiFilter2.default.init(filterId, this._poiArray, this._theMap, this._theList);
 		}
 	}, {
-		key: '_addMarkersToArray',
-		value: function _addMarkersToArray() {
-			this._poiArray.forEach;
+		key: '_addPoiMarkers',
+		value: function _addPoiMarkers(poiArray) {
+			var _this = this;
+
+			poiArray.forEach(function (item, index) {
+				item.marker = _this._createMarker(item.coords);
+			});
+			return poiArray;
 		}
-
-		// Creates and returns a new marker at the position given
-		// Places the marker on the current map
-
 	}, {
 		key: '_createMarker',
 		value: function _createMarker(position) {
 			return new google.maps.Marker({
 				position: position,
-				map: this._theMap
+				map: null
 			});
 		}
-
-		// Uses the poiArray to create markers for each item in the array,
-		// this function also sets the bounds of the map to make sure the markers fit
-		// TODO: potentially make this immutable/return state so poiArray can be synced across application
-		// ^^^ Think about how Flux does it... maybe Pub/Sub?
-
 	}, {
-		key: '_addPoiMarkers',
-		value: function _addPoiMarkers() {
-			var _this = this;
+		key: '_setPoiMarkers',
+		value: function _setPoiMarkers() {
+			var _this2 = this;
 
 			this._poiArray.forEach(function (item, index) {
-				item.marker = _this._createMarker(item.coords);
+				item.marker.setMap(_this2._theMap.getMap());
 			});
 		}
 	}]);
@@ -293,46 +293,23 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var PoiMap = function () {
-	function PoiMap(id, center, poiArray, options) {
+	function PoiMap(id, center) {
 		_classCallCheck(this, PoiMap);
 
-		// Validate data before proceeding
 		if (this._validateMapData(id, center)) {
-
-			// Store all parameters in local properties
 			this._mapId = id;
 			this._mainLocation = center;
-			this._poiArray = poiArray;
 
 			// Create the map and provide reference to said map
 			this._theMap = this._createMap();
 
 			// Create central marker and provide reference
 			this._mainMarker = this._createMarker(this._mainLocation);
-
-			// Create markers using poiArray and add them to each poi
-			this._addPoiMarkers();
-
-			// Set optionals
-
-			// If the data includes information for the infowindow initialise it
-			// and set click events
-			if (options.infoWindow) {
-				this._setInfoWindow();
-				this._addMarkerClickEvents();
-				this._onDestroyInfoWindow();
-			}
-
-			// If the data includes information for custom markers initialise them
-			if (options.customMarkers) {
-				this._customMarkersSettings = options.customMarkers;
-				this._createCustomMarkers();
-			}
 		}
 	}
 
 	// Creates and returns a new Google map. 
-	// Places the map inside DOM element with the provided ID  
+	// Places the map inside the DOM element with the provided ID  
 
 
 	_createClass(PoiMap, [{
@@ -348,10 +325,6 @@ var PoiMap = function () {
 
 			return map;
 		}
-
-		// Creates and returns a new marker at the position given
-		// Places the marker on the current map
-
 	}, {
 		key: '_createMarker',
 		value: function _createMarker(position) {
@@ -360,110 +333,6 @@ var PoiMap = function () {
 				map: this._theMap
 			});
 		}
-
-		// Uses the poiArray to create markers for each item in the array,
-		// this function also sets the bounds of the map to make sure the markers fit
-		// TODO: potentially make this immutable/return state so poiArray can be synced across application
-		// ^^^ Think about how Flux does it... maybe Pub/Sub?
-
-	}, {
-		key: '_addPoiMarkers',
-		value: function _addPoiMarkers() {
-			var _this = this;
-
-			this._poiArray.forEach(function (item, index) {
-				item.marker = _this._createMarker(item.coords);
-			});
-
-			this._setBounds();
-			this._fitBounds();
-		}
-
-		// Uses the poi markers to set the correct zoom level of the map
-
-	}, {
-		key: '_setBounds',
-		value: function _setBounds() {
-			this._bounds = new google.maps.LatLngBounds();
-
-			for (var i = 0; i < this._poiArray.length; i++) {
-				this._bounds.extend(this._poiArray[i].marker.getPosition());
-			}
-		}
-
-		// Initiates the bounds set on the map
-
-	}, {
-		key: '_fitBounds',
-		value: function _fitBounds() {
-			this._theMap.fitBounds(this._bounds);
-		}
-
-		// -- Information window-specific functions
-
-	}, {
-		key: '_setInfoWindow',
-		value: function _setInfoWindow() {
-			this._infoWindow = new google.maps.InfoWindow({
-				maxWidth: 400
-			});
-		}
-	}, {
-		key: '_addMarkerClickEvents',
-		value: function _addMarkerClickEvents() {
-			var _this2 = this;
-
-			this._poiArray.forEach(function (poi, index) {
-				poi.marker.addListener('click', function () {
-					_this2.createInfoWindow(index);
-				});
-			});
-		}
-	}, {
-		key: '_composeInfoWindowString',
-		value: function _composeInfoWindowString(poi) {
-			var HTMLString;
-			HTMLString = '<div id="maps-window">';
-			HTMLString += '<h3>' + poi.name + '</h3>';
-			HTMLString += '<a href="' + poi.website_url + '">' + poi.website_url + '</a>';
-			HTMLString += '<p>' + poi.description + '</p>';
-			HTMLString += '</div>';
-
-			return HTMLString;
-		}
-	}, {
-		key: '_onDestroyInfoWindow',
-		value: function _onDestroyInfoWindow() {
-			var _this3 = this;
-
-			google.maps.event.addListener(this._infoWindow, 'closeclick', function () {
-				_this3._fitBounds();
-			});
-		}
-
-		// -- Custom marker functions
-
-	}, {
-		key: '_createCustomMarkers',
-		value: function _createCustomMarkers() {
-			var _this4 = this;
-
-			this._poiArray.forEach(function (poi, index) {
-				var type = poi.type;
-				var marker = poi.marker;
-
-				// Set standard icons
-				_this4.makeIcon(marker, type, false).call();
-
-				if (_this4._customMarkersSettings.zoom) {
-					marker.addListener('mouseover', _this4.makeIcon(marker, type, true, new google.maps.Point(14, 20)));
-					marker.addListener('mouseout', _this4.makeIcon(marker, type, false));
-				}
-			});
-		}
-
-		// -- Utility functions
-
 	}, {
 		key: '_validateMapData',
 		value: function _validateMapData(id, center) {
@@ -498,74 +367,241 @@ var PoiMap = function () {
 
 			return true;
 		}
-
-		// ----------------------- PUBLIC INTERFACE -------------------------------
-
-		// Applys the map's infoWindow to the marker of the point of interest given
-		// TODO: Does this need to take a poi instead of an index? 
-
 	}, {
-		key: 'createInfoWindow',
-		value: function createInfoWindow(poiIndex) {
-			var poi = this._poiArray[poiIndex];
-			var contentString = this._composeInfoWindowString(poi);
-
-			this._infoWindow.setContent(contentString);
-			this._infoWindow.open(this._theMap, poi.marker);
-			this._theMap.panTo(poi.marker.getPosition());
-		}
-
-		// Icons will be changed within event listeners when the zoom option is applied,
-		// which causes problems when feeding parameters to the function (it gets called immediately).
-		// Currying to the rescue, this function is partially applied so needs to be
-		// .call()-ed when used outside of an event listener.
-
-	}, {
-		key: 'makeIcon',
-		value: function makeIcon(marker, type, zoom, anchor) {
-			var _this5 = this;
-
-			return function () {
-				var iconImg = zoom ? _this5._customMarkersSettings.zoom : _this5._customMarkersSettings.icon;
-
-				var icon = {
-					url: _this5._customMarkersSettings.path + type + iconImg + '.png',
-					origin: new google.maps.Point(0, 0),
-					anchor: anchor
-				};
-
-				marker.setIcon(icon);
-			};
-		}
-
-		// Removes any markers from the map who's 'type' property matches the filter
-		// TODO: potentially make this immutable/return state so poiArray can be synced across application
-		// ^^^ Think about how Flux does it...
-
-	}, {
-		key: 'filterMarkers',
-		value: function filterMarkers(filter) {
-			var _this6 = this;
-
-			this._poiArray.forEach(function (item, index) {
-				if (item.type === filter) {
-					if (item.marker.getMap() !== null) {
-						item.marker.setMap(null);
-					} else {
-						item.marker.setMap(_this6._theMap);
-					}
-				}
-			});
-		}
-	}, {
-		key: 'getPoiArray',
-		value: function getPoiArray() {
-			return this._poiArray;
+		key: 'getMap',
+		value: function getMap() {
+			return this._theMap;
 		}
 	}]);
 
 	return PoiMap;
 }();
+
+// class PoiMap {
+// 	constructor(id, center, poiArray, options) {
+// 		// Validate data before proceeding
+// 		if (this._validateMapData(id, center)) {
+
+// 			// Store all parameters in local properties
+// 			this._mapId = id;
+// 			this._mainLocation = center;
+// 			this._poiArray = poiArray;
+
+// 			// Create the map and provide reference to said map
+// 			this._theMap = this._createMap();
+
+// 			// Create central marker and provide reference
+// 			this._mainMarker = this._createMarker(this._mainLocation);
+
+// 			// Create markers using poiArray and add them to each poi
+// 			this._addPoiMarkers();
+
+// 			// Set optionals
+
+// 			// If the data includes information for the infowindow initialise it
+// 			// and set click events
+// 			if (options.infoWindow) {
+// 				this._setInfoWindow();
+// 				this._addMarkerClickEvents();
+// 				this._onDestroyInfoWindow();
+// 			}
+
+// 			// If the data includes information for custom markers initialise them
+// 			if (options.customMarkers) {
+// 				this._customMarkersSettings = options.customMarkers;
+// 				this._createCustomMarkers();
+// 			}
+
+// 		}
+// 	}
+
+// 	// Creates and returns a new Google map. 
+// 	// Places the map inside DOM element with the provided ID  
+// 	_createMap() {
+// 		const mapDiv = document.getElementById(this._mapId);
+
+// 		const map = new google.maps.Map(mapDiv, {
+// 			center: this._mainLocation,
+// 			scrollwheel: false,
+// 			zoom: 15
+// 		});
+
+// 		return map;
+// 	}
+
+// 	// Creates and returns a new marker at the position given
+// 	// Places the marker on the current map
+// 	_createMarker(position) {
+// 		return new google.maps.Marker({
+// 			position: position,
+// 			map: this._theMap
+// 		});
+// 	}
+
+// 	// Uses the poiArray to create markers for each item in the array,
+// 	// this function also sets the bounds of the map to make sure the markers fit
+// 	// TODO: potentially make this immutable/return state so poiArray can be synced across application
+// 	// ^^^ Think about how Flux does it... maybe Pub/Sub?
+// 	_addPoiMarkers() {
+
+// 		this._poiArray.forEach((item, index) => {
+// 			item.marker = this._createMarker(item.coords);
+// 		});
+
+// 		this._setBounds();
+// 		this._fitBounds();
+// 	}
+
+// 	// Uses the poi markers to set the correct zoom level of the map
+// 	_setBounds() {
+// 		this._bounds = new google.maps.LatLngBounds();
+
+// 		for(var i = 0; i < this._poiArray.length; i++) {
+// 			this._bounds.extend(this._poiArray[i].marker.getPosition());
+// 		}
+// 	}
+
+// 	// Initiates the bounds set on the map
+// 	_fitBounds() {
+// 		this._theMap.fitBounds(this._bounds);
+// 	}
+
+// 	// -- Information window-specific functions
+
+// 	_setInfoWindow() {
+// 		this._infoWindow = new google.maps.InfoWindow({
+// 			maxWidth: 400
+// 		});
+// 	}
+
+// 	_addMarkerClickEvents() {
+// 		this._poiArray.forEach((poi, index) => {
+// 			poi.marker.addListener('click', () => {
+// 				this.createInfoWindow(index);
+// 			});
+// 		});
+// 	}
+
+// 	_composeInfoWindowString(poi) {
+// 		var HTMLString;
+// 		HTMLString = '<div id="maps-window">';
+// 		HTMLString += '<h3>' + poi.name + '</h3>';
+// 		HTMLString += '<a href="' + poi.website_url + '">' + poi.website_url + '</a>';
+// 		HTMLString += '<p>' + poi.description + '</p>';
+// 		HTMLString += '</div>';
+
+// 		return HTMLString;
+// 	}
+
+// 	_onDestroyInfoWindow() {
+// 		google.maps.event.addListener(this._infoWindow, 'closeclick', () => {
+// 			this._fitBounds();
+// 		});
+// 	}
+
+// 	// -- Custom marker functions
+
+// 	_createCustomMarkers() {
+
+// 		this._poiArray.forEach((poi, index) => {
+// 			let type = poi.type;
+// 			let marker = poi.marker;
+
+// 			// Set standard icons
+// 			this.makeIcon(marker, type, false).call();
+
+// 			if (this._customMarkersSettings.zoom) {
+// 				marker.addListener('mouseover', this.makeIcon(marker, type, true, new google.maps.Point(14, 20)));
+// 				marker.addListener('mouseout', this.makeIcon(marker, type, false));
+// 			}
+// 		});
+// 	}
+
+// 	// -- Utility functions
+
+// 	_validateMapData(id, center) {
+// 		if (id) {
+// 			if (typeof id !== 'string') {
+// 				console.error('Error: Map ID must be a string');
+// 				return false;
+// 			}
+// 			if (!document.getElementById(id)) {
+// 				console.error('Error: Map ID must be part of the DOM!');
+// 				return false;
+// 			}
+// 		} else {
+// 			console.error('Error: No Map ID present');
+// 			return false;
+// 		}
+
+// 		if (center) {
+// 			if (center.lat && center.lng) {
+// 				if (typeof center.lat !== 'number' || typeof center.lng !== 'number') {
+// 					console.error('Error: Lattitude and longitude must be numbers');
+// 					return false;
+// 				}
+// 			} else {
+// 				console.error('Error: Please provide central location lattitude and longitude');
+// 				return false;
+// 			}
+// 		} else {
+// 			console.error('Error: No central location provided');
+// 			return false;
+// 		}
+
+// 		return true;
+// 	}
+
+// 	// ----------------------- PUBLIC INTERFACE -------------------------------
+
+// 	// Applys the map's infoWindow to the marker of the point of interest given
+// 	// TODO: Does this need to take a poi instead of an index? 
+// 	createInfoWindow(poiIndex) {
+// 		let poi = this._poiArray[poiIndex];
+// 		let contentString = this._composeInfoWindowString(poi);
+
+// 		this._infoWindow.setContent(contentString);
+// 		this._infoWindow.open(this._theMap, poi.marker);
+// 		this._theMap.panTo(poi.marker.getPosition());
+// 	}
+
+// 	// Icons will be changed within event listeners when the zoom option is applied,
+// 	// which causes problems when feeding parameters to the function (it gets called immediately).
+// 	// Currying to the rescue, this function is partially applied so needs to be
+// 	// .call()-ed when used outside of an event listener.
+// 	makeIcon(marker, type, zoom, anchor) {
+// 		return (() => {
+// 			var iconImg = zoom ? this._customMarkersSettings.zoom : this._customMarkersSettings.icon;
+
+// 			var icon = {
+// 				url: this._customMarkersSettings.path + type + iconImg + '.png',
+// 				origin: new google.maps.Point(0, 0),
+// 				anchor: anchor
+// 			};
+
+// 			marker.setIcon(icon);
+// 		});
+// 	}
+
+// 	// Removes any markers from the map who's 'type' property matches the filter
+// 	// TODO: potentially make this immutable/return state so poiArray can be synced across application
+// 	// ^^^ Think about how Flux does it...
+// 	filterMarkers(filter) {
+// 		this._poiArray.forEach((item, index) => {
+// 			if (item.type === filter) {
+// 				if (item.marker.getMap() !== null) {
+// 					item.marker.setMap(null);
+// 				} else {
+// 					item.marker.setMap(this._theMap);
+// 				}
+// 			}
+// 		});
+// 	}
+
+// 	getPoiArray() {
+// 		return this._poiArray;
+// 	}
+// }
 
 exports.default = PoiMap;
 
@@ -652,7 +688,7 @@ var options = {
 
 var myMap = new _MapsApp2.default('map', _mockdata.mainMarker, _mockdata.places, options);
 
-myMap.createList('amenity-list');
-myMap.createFilter('filter-controls');
+// myMap.createList('amenity-list');
+// myMap.createFilter('filter-controls');
 
 },{"./MapsApp":1,"./data/mockdata":5}]},{},[6]);

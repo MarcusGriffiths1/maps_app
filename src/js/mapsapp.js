@@ -8,11 +8,16 @@ class MapsApp {
 		// Setup
 		this._mapId = mapId;
 		this._center = center;
-		this._poiArray = poiDetailsArray;
+		this._poiArray = this._addPoiMarkers(poiDetailsArray);
 		this._options = options;
 
+		this._theMap = new PoiMap(this._mapId, this._center);
+		console.log(this._poiArray);
+
+		this._setPoiMarkers();
+
 		// google.maps.event.addDomListener(window, 'load', this.initialise);
-		this._initialise();
+		// this._initialise();
 	}
 
 	_initialise() {
@@ -28,28 +33,25 @@ class MapsApp {
 		this._theFilter = PoiFilter.init(filterId, this._poiArray, this._theMap, this._theList);
 	}
 
-	_addMarkersToArray() {
-		this._poiArray.forEach
+	_addPoiMarkers(poiArray) {
+		poiArray.forEach((item, index) => {
+			item.marker = this._createMarker(item.coords);
+		});
+		return poiArray;
 	}
 
-	// // Creates and returns a new marker at the position given
-	// // Places the marker on the current map
-	// _createMarker(position) {
-	// 	return new google.maps.Marker({
-	// 		position: position,
-	// 		map: this._theMap
-	// 	});
-	// }
+	_createMarker(position) {
+		return new google.maps.Marker({
+			position: position,
+			map: null
+		});
+	}
 
-	// // Uses the poiArray to create markers for each item in the array,
-	// // this function also sets the bounds of the map to make sure the markers fit
-	// // TODO: potentially make this immutable/return state so poiArray can be synced across application
-	// // ^^^ Think about how Flux does it... maybe Pub/Sub?
-	// _addPoiMarkers() {
-	// 	this._poiArray.forEach((item, index) => {
-	// 		item.marker = this._createMarker(item.coords);
-	// 	});
-	// }
+	_setPoiMarkers() {
+		this._poiArray.forEach((item, index) => {
+			item.marker.setMap(this._theMap.getMap());
+		});
+	}
 }
 
 export default MapsApp;

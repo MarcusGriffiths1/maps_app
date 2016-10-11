@@ -12,5 +12,5 @@ const options = {
 
 var myMap = new MapsApp('map', mainMarker, places, options);
 
-myMap.createList('amenity-list');
-myMap.createFilter('filter-controls');
+// myMap.createList('amenity-list');
+// myMap.createFilter('filter-controls');
