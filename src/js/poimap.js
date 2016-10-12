@@ -1,3 +1,5 @@
+import Marker from './Marker';
+
 class PoiMap {
 	constructor(id, center) {
 		if (this._validateMapData(id, center)) {
@@ -8,7 +10,7 @@ class PoiMap {
 			this._theMap = this._createMap();
 
 			// Create central marker and provide reference
-			this._mainMarker = this._createMarker(this._mainLocation);
+			this._mainMarker = Marker.createMarker(this._mainLocation, this._theMap);
 		}
 	}
 
@@ -24,13 +26,6 @@ class PoiMap {
 		});
 
 		return map;
-	}
-
-	_createMarker(position) {
-		return new google.maps.Marker({
-			position: position,
-			map: this._theMap
-		});
 	}
 
 	_validateMapData(id, center) {
@@ -66,9 +61,26 @@ class PoiMap {
 		return true;
 	}
 
-	getMap() {
+	_setBounds(poiArray) {
+		this._bounds = new google.maps.LatLngBounds();
+
+		for(var i = 0; i < poiArray.length; i++) {
+			this._bounds.extend(poiArray[i].marker.getPosition());
+		}
+	}
+
+	// --------------- PUBLIC INTERFACE ----------------------
+
+	// Initiates the bounds of the markers in an array
+	fitBounds(poiArray) {
+		this._setBounds(poiArray);
+		this._theMap.fitBounds(this._bounds);
+	}
+
+	getGMap() {
 		return this._theMap;
 	};
+
 }
 
 // class PoiMap {

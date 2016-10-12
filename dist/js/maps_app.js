@@ -19,6 +19,10 @@ var _PoiMap = require('./PoiMap');
 
 var _PoiMap2 = _interopRequireDefault(_PoiMap);
 
+var _Marker = require('./Marker');
+
+var _Marker2 = _interopRequireDefault(_Marker);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -27,63 +31,43 @@ var MapsApp = function () {
 	function MapsApp(mapId, center, poiDetailsArray, options) {
 		_classCallCheck(this, MapsApp);
 
-		// Setup
+		// Setup the map
 		this._mapId = mapId;
 		this._center = center;
-		this._poiArray = this._addPoiMarkers(poiDetailsArray);
-		this._options = options;
-
 		this._theMap = new _PoiMap2.default(this._mapId, this._center);
-		console.log(this._poiArray);
 
-		this._setPoiMarkers();
+		// Setup the markers
+		this._originalPoiArray = _Marker2.default.addMarkersToArray(poiDetailsArray);
+		this._filteredArray = this._originalPoiArray.slice(0); // Sliced so array is passed by value, not by reference
+		this._setMarkersToMap(this._originalPoiArray, this._filteredArray, this._theMap);
 
-		// google.maps.event.addDomListener(window, 'load', this.initialise);
-		// this._initialise();
+		// Setup any optional extras
+		this._options = options;
 	}
 
+	// Resets any markers on the map according to the original list of POIs
+	// and replaces them with the filtered list
+
+
 	_createClass(MapsApp, [{
-		key: '_initialise',
-		value: function _initialise() {
-			// this._addPoiMarkers();
-			this._theMap = new _PoiMap2.default(this._mapId, this._center, this._poiArray, this._options);
+		key: '_setMarkersToMap',
+		value: function _setMarkersToMap(resetArray, markerArray, map) {
+			_Marker2.default.resetMarkers(resetArray);
+			_Marker2.default.setMarkers(markerArray, map.getGMap());
+			map.fitBounds(markerArray);
 		}
+
+		// --------------- PUBLIC INTERFACE ----------------------
+
 	}, {
 		key: 'createList',
 		value: function createList(listId) {
-			this._theList = new _PoiList2.default(listId, this._poiArray, this._theMap);
+			this._theList = new _PoiList2.default(listId, this._filteredArray);
 		}
 	}, {
 		key: 'createFilter',
 		value: function createFilter(filterId) {
 			this._theFilter = _PoiFilter2.default.init(filterId, this._poiArray, this._theMap, this._theList);
-		}
-	}, {
-		key: '_addPoiMarkers',
-		value: function _addPoiMarkers(poiArray) {
-			var _this = this;
-
-			poiArray.forEach(function (item, index) {
-				item.marker = _this._createMarker(item.coords);
-			});
-			return poiArray;
-		}
-	}, {
-		key: '_createMarker',
-		value: function _createMarker(position) {
-			return new google.maps.Marker({
-				position: position,
-				map: null
-			});
-		}
-	}, {
-		key: '_setPoiMarkers',
-		value: function _setPoiMarkers() {
-			var _this2 = this;
-
-			this._poiArray.forEach(function (item, index) {
-				item.marker.setMap(_this2._theMap.getMap());
-			});
 		}
 	}]);
 
@@ -92,7 +76,60 @@ var MapsApp = function () {
 
 exports.default = MapsApp;
 
-},{"./PoiFilter":2,"./PoiList":3,"./PoiMap":4}],2:[function(require,module,exports){
+},{"./Marker":2,"./PoiFilter":3,"./PoiList":4,"./PoiMap":5}],2:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Marker = function () {
+	function Marker() {
+		_classCallCheck(this, Marker);
+	}
+
+	_createClass(Marker, null, [{
+		key: "addMarkersToArray",
+		value: function addMarkersToArray(poiArray) {
+			var _this = this;
+
+			poiArray.forEach(function (item, index) {
+				item.marker = _this.createMarker(item.coords, null);
+			});
+			return poiArray;
+		}
+	}, {
+		key: "setMarkers",
+		value: function setMarkers(markerArray, map) {
+			markerArray.forEach(function (item, index) {
+				item.marker.setMap(map);
+			});
+		}
+	}, {
+		key: "resetMarkers",
+		value: function resetMarkers(markerArray) {
+			this.setMarkers(markerArray, null);
+		}
+	}, {
+		key: "createMarker",
+		value: function createMarker(position, map) {
+			return new google.maps.Marker({
+				position: position,
+				map: map
+			});
+		}
+	}]);
+
+	return Marker;
+}();
+
+exports.default = Marker;
+
+},{}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -179,7 +216,7 @@ var PoiFilter = function () {
 
 exports.default = PoiFilter;
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -191,31 +228,28 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var PoiList = function () {
-	function PoiList(id, poiArray, map) {
+	function PoiList(listId, poiArray) {
 		_classCallCheck(this, PoiList);
 
-		this._listId = id;
-		this._poiArray = poiArray;
-		this._theMap = map;
+		this._listId = listId;
 
-		this._createList();
-		this._addListEventListeners();
+		this._createList(poiArray);
 	}
 
 	_createClass(PoiList, [{
 		key: '_createList',
-		value: function _createList() {
-			var listHTML = this._makeListHTML();
+		value: function _createList(poiArray) {
+			var listHTML = this._makeListHTML(poiArray);
 			document.getElementById(this._listId).innerHTML = listHTML;
 		}
 	}, {
 		key: '_makeListHTML',
-		value: function _makeListHTML() {
+		value: function _makeListHTML(poiArray) {
 			var _this = this;
 
 			var HTML = '<ul id="poi-list">';
 
-			this._poiArray.forEach(function (poiDetail, index) {
+			poiArray.forEach(function (poiDetail, index) {
 				HTML += _this._makeListItemHTML(poiDetail);
 			});
 
@@ -240,40 +274,6 @@ var PoiList = function () {
 
 			return HTML;
 		}
-	}, {
-		key: '_addListEventListeners',
-		value: function _addListEventListeners() {
-			var _this2 = this;
-
-			//TODO: refactor
-			this._domList = document.getElementById('poi-list').getElementsByTagName('li');
-			this._listItemDisplayValue = this._domList[0].style.display;
-
-			[].forEach.call(this._domList, function (item, index) {
-				item.addEventListener('mouseover', _this2._theMap.makeIcon(_this2._poiArray[index].marker, _this2._poiArray[index].type, true, new google.maps.Point(14, 20)));
-
-				item.addEventListener('mouseleave', _this2._theMap.makeIcon(_this2._poiArray[index].marker, _this2._poiArray[index].type, false));
-
-				item.addEventListener('click', function () {
-					_this2._theMap.createInfoWindow(index);
-				});
-			});
-		}
-	}, {
-		key: 'filterListItem',
-		value: function filterListItem(filter) {
-			var _this3 = this;
-
-			this._poiArray.forEach(function (item, index) {
-				if (item.type == filter) {
-					if (_this3._domList[index].style.display === 'none') {
-						_this3._domList[index].style.display = _this3._listItemDisplayValue;
-					} else {
-						_this3._domList[index].style.display = 'none';
-					}
-				}
-			});
-		}
 	}]);
 
 	return PoiList;
@@ -281,7 +281,80 @@ var PoiList = function () {
 
 exports.default = PoiList;
 
-},{}],4:[function(require,module,exports){
+// class PoiList {
+// 	constructor(id, poiArray, map) {
+// 		this._listId = id;
+// 		this._poiArray = poiArray;
+// 		this._theMap = map;
+
+// 		this._createList();
+// 		this._addListEventListeners();
+// 	}
+
+// 	_createList() {
+// 		let listHTML = this._makeListHTML();
+// 		document.getElementById(this._listId).innerHTML = listHTML;
+// 	}
+
+// 	_makeListHTML() {
+// 		let HTML = '<ul id="poi-list">';
+
+// 		this._poiArray.forEach((poiDetail, index) => {
+// 			HTML += this._makeListItemHTML(poiDetail);
+// 		});
+
+// 		HTML += '</ul>';
+// 		return HTML;
+// 	}
+
+// 	_makeListItemHTML(poiDetail) {
+// 		//TODO: make it dynamic!
+// 		let iconPath = "img/amenity_icons/" + poiDetail.type + "_icon_large.png"; //dynamic
+// 		let	title = poiDetail.name;
+// 		let	distance = 0.2; //getDistance();
+// 		let	rating = 4;
+
+// 		let HTML = '<li>';
+// 		HTML += '<img class="poi-icon" src="' + iconPath + '">';
+// 		HTML += '<h3>' + title + '</h3>';
+// 		HTML += '<span class="poi-distance">' + distance + ' miles from you</span>';
+// 		HTML += '<span class="poi-rating">Rating: <span>' + rating + '</span></span>';
+// 		HTML += '</li>';
+
+// 		return HTML;
+// 	}
+
+// 	_addListEventListeners() {
+// 		//TODO: refactor
+// 		this._domList = document.getElementById('poi-list').getElementsByTagName('li');
+// 		this._listItemDisplayValue = this._domList[0].style.display;
+
+// 		[].forEach.call(this._domList, (item, index) => {
+// 			item.addEventListener('mouseover', 	this._theMap.makeIcon(this._poiArray[index].marker, this._poiArray[index].type, true, new google.maps.Point(14, 20)));
+
+// 			item.addEventListener('mouseleave', this._theMap.makeIcon(this._poiArray[index].marker, this._poiArray[index].type, false));
+
+// 			item.addEventListener('click', () => {
+// 				this._theMap.createInfoWindow(index);
+// 			});
+// 		});
+// 	}
+
+// 	filterListItem(filter) {
+
+// 		this._poiArray.forEach((item, index) => {
+// 			if (item.type == filter) {
+// 				if (this._domList[index].style.display === 'none') {
+// 					this._domList[index].style.display = this._listItemDisplayValue;
+// 				} else {
+// 					this._domList[index].style.display = 'none';
+// 				}
+// 			}
+// 		});
+// 	}
+// }
+
+},{}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -289,6 +362,12 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _Marker = require('./Marker');
+
+var _Marker2 = _interopRequireDefault(_Marker);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -304,7 +383,7 @@ var PoiMap = function () {
 			this._theMap = this._createMap();
 
 			// Create central marker and provide reference
-			this._mainMarker = this._createMarker(this._mainLocation);
+			this._mainMarker = _Marker2.default.createMarker(this._mainLocation, this._theMap);
 		}
 	}
 
@@ -324,14 +403,6 @@ var PoiMap = function () {
 			});
 
 			return map;
-		}
-	}, {
-		key: '_createMarker',
-		value: function _createMarker(position) {
-			return new google.maps.Marker({
-				position: position,
-				map: this._theMap
-			});
 		}
 	}, {
 		key: '_validateMapData',
@@ -368,8 +439,28 @@ var PoiMap = function () {
 			return true;
 		}
 	}, {
-		key: 'getMap',
-		value: function getMap() {
+		key: '_setBounds',
+		value: function _setBounds(poiArray) {
+			this._bounds = new google.maps.LatLngBounds();
+
+			for (var i = 0; i < poiArray.length; i++) {
+				this._bounds.extend(poiArray[i].marker.getPosition());
+			}
+		}
+
+		// --------------- PUBLIC INTERFACE ----------------------
+
+		// Initiates the bounds of the markers in an array
+
+	}, {
+		key: 'fitBounds',
+		value: function fitBounds(poiArray) {
+			this._setBounds(poiArray);
+			this._theMap.fitBounds(this._bounds);
+		}
+	}, {
+		key: 'getGMap',
+		value: function getGMap() {
 			return this._theMap;
 		}
 	}]);
@@ -605,7 +696,7 @@ var PoiMap = function () {
 
 exports.default = PoiMap;
 
-},{}],5:[function(require,module,exports){
+},{"./Marker":2}],6:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -666,7 +757,7 @@ var mainMarker = {
 exports.places = places;
 exports.mainMarker = mainMarker;
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 
 var _MapsApp = require('./MapsApp');
@@ -688,7 +779,7 @@ var options = {
 
 var myMap = new _MapsApp2.default('map', _mockdata.mainMarker, _mockdata.places, options);
 
-// myMap.createList('amenity-list');
+myMap.createList('amenity-list');
 // myMap.createFilter('filter-controls');
 
-},{"./MapsApp":1,"./data/mockdata":5}]},{},[6]);
+},{"./MapsApp":1,"./data/mockdata":6}]},{},[7]);
