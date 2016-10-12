@@ -92,6 +92,7 @@ class PoiMap {
 	_setInfoWindow() {
 		this._infoWindow = new google.maps.InfoWindow({
 			maxWidth: 400
+
 		});
 	}
 
@@ -123,7 +124,6 @@ class PoiMap {
 	// -- Custom marker functions
 
 	_createCustomMarkers() {
-
 		this._poiArray.forEach((poi, index) => {
 			let type = poi.type;
 			let marker = poi.marker;
@@ -205,8 +205,6 @@ class PoiMap {
 	}
 
 	// Removes any markers from the map who's 'type' property matches the filter
-	// TODO: potentially make this immutable/return state so poiArray can be synced across application
-	// ^^^ Think about how Flux does it...
 	filterMarkers(filter) {
 		this._poiArray.forEach((item, index) => {
 			if (item.type === filter) {

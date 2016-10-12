@@ -40,7 +40,7 @@ var MapsApp = function () {
 	_createClass(MapsApp, [{
 		key: '_initialise',
 		value: function _initialise() {
-			this._addPoiMarkers();
+			// this._addPoiMarkers();
 			this._theMap = new _PoiMap2.default(this._mapId, this._center, this._poiArray, this._options);
 		}
 	}, {
@@ -52,38 +52,6 @@ var MapsApp = function () {
 		key: 'createFilter',
 		value: function createFilter(filterId) {
 			this._theFilter = _PoiFilter2.default.init(filterId, this._poiArray, this._theMap, this._theList);
-		}
-	}, {
-		key: '_addMarkersToArray',
-		value: function _addMarkersToArray() {
-			this._poiArray.forEach;
-		}
-
-		// Creates and returns a new marker at the position given
-		// Places the marker on the current map
-
-	}, {
-		key: '_createMarker',
-		value: function _createMarker(position) {
-			return new google.maps.Marker({
-				position: position,
-				map: this._theMap
-			});
-		}
-
-		// Uses the poiArray to create markers for each item in the array,
-		// this function also sets the bounds of the map to make sure the markers fit
-		// TODO: potentially make this immutable/return state so poiArray can be synced across application
-		// ^^^ Think about how Flux does it... maybe Pub/Sub?
-
-	}, {
-		key: '_addPoiMarkers',
-		value: function _addPoiMarkers() {
-			var _this = this;
-
-			this._poiArray.forEach(function (item, index) {
-				item.marker = _this._createMarker(item.coords);
-			});
 		}
 	}]);
 
@@ -406,6 +374,7 @@ var PoiMap = function () {
 		value: function _setInfoWindow() {
 			this._infoWindow = new google.maps.InfoWindow({
 				maxWidth: 400
+
 			});
 		}
 	}, {
@@ -539,8 +508,6 @@ var PoiMap = function () {
 		}
 
 		// Removes any markers from the map who's 'type' property matches the filter
-		// TODO: potentially make this immutable/return state so poiArray can be synced across application
-		// ^^^ Think about how Flux does it...
 
 	}, {
 		key: 'filterMarkers',

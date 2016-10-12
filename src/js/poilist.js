@@ -58,7 +58,6 @@ class PoiList {
 	}
 
 	filterListItem(filter) {
-
 		this._poiArray.forEach((item, index) => {
 			if (item.type == filter) {
 				if (this._domList[index].style.display === 'none') {
