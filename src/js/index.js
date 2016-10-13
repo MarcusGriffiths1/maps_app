@@ -1,4 +1,4 @@
-import MapsApp from './MapsApp';
+import MapsApp from './MapsApp/MapsApp';
 import { places, mainMarker } from './data/mockdata';
 
 const options = {

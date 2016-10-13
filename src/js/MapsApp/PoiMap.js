@@ -112,7 +112,7 @@ class PoiMap {
 
 	_composeInfoWindowString(poi) {
 		var HTMLString;
-		HTMLString = '<div id="maps-window">';
+		HTMLString = '<div id="maps-window">'; 
 		HTMLString += '<h3>' + poi.name + '</h3>';
 		HTMLString += '<a href="' + poi.website_url + '">' + poi.website_url + '</a>';
 		HTMLString += '<p>' + poi.description + '</p>';

@@ -894,7 +894,7 @@ exports.mainMarker = mainMarker;
 },{}],8:[function(require,module,exports){
 'use strict';
 
-var _MapsApp = require('./MapsApp');
+var _MapsApp = require('./MapsApp/MapsApp');
 
 var _MapsApp2 = _interopRequireDefault(_MapsApp);
 
@@ -916,4 +916,4 @@ var myMap = new _MapsApp2.default('map', _mockdata.mainMarker, _mockdata.places,
 myMap.createList('amenity-list');
 // myMap.createFilter('filter-controls');
 
-},{"./MapsApp":1,"./data/mockdata":7}]},{},[8]);
+},{"./MapsApp/MapsApp":1,"./data/mockdata":7}]},{},[8]);
