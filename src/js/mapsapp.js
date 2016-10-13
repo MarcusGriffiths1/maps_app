@@ -1,37 +1,33 @@
 import PoiFilter from './PoiFilter';
 import PoiList from './PoiList';
 import PoiMap from './PoiMap';
-import Marker from './Marker';
+import PoiData from './PoiData';
+import pubSub from './PubSub';
 
 class MapsApp {
 
 	constructor(mapId, center, poiDetailsArray, options) {
-		// Setup the map
-		this._mapId = mapId;
-		this._center = center;
-		this._theMap = new PoiMap(this._mapId, this._center);
-
-		// Setup the markers
-		this._originalPoiArray = Marker.addMarkersToArray(poiDetailsArray);
-		this._filteredArray = this._originalPoiArray.slice(0); // Sliced so array is passed by value, not by reference
-		this._setMarkersToMap(this._originalPoiArray, this._filteredArray, this._theMap);
+		// Setup the data and the map
+		this._theData = new PoiData(poiDetailsArray);
+		this._theMap = new PoiMap(mapId, center, this._theData.getPoiData());
 
 		// Setup any optional extras
 		this._options = options;
-	}
 
-	// Resets any markers on the map according to the original list of POIs
-	// and replaces them with the filtered list
-	_setMarkersToMap(resetArray, markerArray, map) {
-		Marker.resetMarkers(resetArray);
-		Marker.setMarkers(markerArray, map.getGMap());
-		map.fitBounds(markerArray);
+		if (this._options.infoWindow === true) {
+			this._theMap.initialiseInfoWindow();
+			this._theData.addMarkerClickEvents();
+		}
+
+		if (this._options.customMarkers) {
+			this._theData.addCustomMarkers(this._options.customMarkers);
+		}
 	}
 
 	// --------------- PUBLIC INTERFACE ----------------------
 
 	createList(listId) {
-		this._theList = new PoiList(listId, this._filteredArray);
+		this._theList = new PoiList(listId, this._theData.getPoiData());
 	}
 
 	createFilter(filterId) {

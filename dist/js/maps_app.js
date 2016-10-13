@@ -19,9 +19,13 @@ var _PoiMap = require('./PoiMap');
 
 var _PoiMap2 = _interopRequireDefault(_PoiMap);
 
-var _Marker = require('./Marker');
+var _PoiData = require('./PoiData');
 
-var _Marker2 = _interopRequireDefault(_Marker);
+var _PoiData2 = _interopRequireDefault(_PoiData);
+
+var _PubSub = require('./PubSub');
+
+var _PubSub2 = _interopRequireDefault(_PubSub);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -31,38 +35,29 @@ var MapsApp = function () {
 	function MapsApp(mapId, center, poiDetailsArray, options) {
 		_classCallCheck(this, MapsApp);
 
-		// Setup the map
-		this._mapId = mapId;
-		this._center = center;
-		this._theMap = new _PoiMap2.default(this._mapId, this._center);
-
-		// Setup the markers
-		this._originalPoiArray = _Marker2.default.addMarkersToArray(poiDetailsArray);
-		this._filteredArray = this._originalPoiArray.slice(0); // Sliced so array is passed by value, not by reference
-		this._setMarkersToMap(this._originalPoiArray, this._filteredArray, this._theMap);
+		// Setup the data and the map
+		this._theData = new _PoiData2.default(poiDetailsArray);
+		this._theMap = new _PoiMap2.default(mapId, center, this._theData.getPoiData());
 
 		// Setup any optional extras
 		this._options = options;
-	}
 
-	// Resets any markers on the map according to the original list of POIs
-	// and replaces them with the filtered list
-
-
-	_createClass(MapsApp, [{
-		key: '_setMarkersToMap',
-		value: function _setMarkersToMap(resetArray, markerArray, map) {
-			_Marker2.default.resetMarkers(resetArray);
-			_Marker2.default.setMarkers(markerArray, map.getGMap());
-			map.fitBounds(markerArray);
+		if (this._options.infoWindow === true) {
+			this._theMap.initialiseInfoWindow();
+			this._theData.addMarkerClickEvents();
 		}
 
-		// --------------- PUBLIC INTERFACE ----------------------
+		if (this._options.customMarkers) {
+			this._theData.addCustomMarkers(this._options.customMarkers);
+		}
+	}
 
-	}, {
+	// --------------- PUBLIC INTERFACE ----------------------
+
+	_createClass(MapsApp, [{
 		key: 'createList',
 		value: function createList(listId) {
-			this._theList = new _PoiList2.default(listId, this._filteredArray);
+			this._theList = new _PoiList2.default(listId, this._theData.getPoiData());
 		}
 	}, {
 		key: 'createFilter',
@@ -76,8 +71,8 @@ var MapsApp = function () {
 
 exports.default = MapsApp;
 
-},{"./Marker":2,"./PoiFilter":3,"./PoiList":4,"./PoiMap":5}],2:[function(require,module,exports){
-"use strict";
+},{"./PoiData":2,"./PoiFilter":3,"./PoiList":4,"./PoiMap":5,"./PubSub":6}],2:[function(require,module,exports){
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
 	value: true
@@ -85,51 +80,194 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _PubSub = require('./PubSub');
+
+var _PubSub2 = _interopRequireDefault(_PubSub);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Marker = function () {
-	function Marker() {
-		_classCallCheck(this, Marker);
+var PoiData = function () {
+	function PoiData(array) {
+		_classCallCheck(this, PoiData);
+
+		this._poiData = this._formatData(array);
+		this._filterList = [];
 	}
 
-	_createClass(Marker, null, [{
-		key: "addMarkersToArray",
-		value: function addMarkersToArray(poiArray) {
+	// Adds google maps markers and unique keys to each poi
+
+
+	_createClass(PoiData, [{
+		key: '_formatData',
+		value: function _formatData(poiArray) {
 			var _this = this;
 
 			poiArray.forEach(function (item, index) {
-				item.marker = _this.createMarker(item.coords, null);
+				item.marker = _this._createMarker(item.coords, null);
+				item.key = index;
 			});
 			return poiArray;
 		}
 	}, {
-		key: "setMarkers",
-		value: function setMarkers(markerArray, map) {
-			markerArray.forEach(function (item, index) {
-				item.marker.setMap(map);
-			});
-		}
-	}, {
-		key: "resetMarkers",
-		value: function resetMarkers(markerArray) {
-			this.setMarkers(markerArray, null);
-		}
-	}, {
-		key: "createMarker",
-		value: function createMarker(position, map) {
+		key: '_createMarker',
+		value: function _createMarker(position, map) {
 			return new google.maps.Marker({
 				position: position,
 				map: map
 			});
 		}
+	}, {
+		key: '_resetMarkers',
+		value: function _resetMarkers() {
+			this._poiData.forEach(function (item, index) {
+				item.marker.setMap(null);
+			});
+		}
+	}, {
+		key: '_indexOf',
+		value: function _indexOf(item, array) {
+			var i = 0;
+
+			while (i < array.length) {
+				if (array[i] === item) {
+					return i;
+				}
+				i++;
+			}
+			return -1;
+		}
+	}, {
+		key: '_filterData',
+		value: function _filterData() {
+			var _this2 = this;
+
+			var filteredData = this._poiData.filter(function (item) {
+				if (_this2._filterList.length) {
+					var isNotFiltered = true;
+
+					for (var i = 0; i < _this2._filterList.length; i++) {
+						if (_this2._filterList[i] === item.type) {
+							isNotFiltered = false;
+						}
+					}
+
+					return isNotFiltered;
+				}
+				return true;
+			});
+			return filteredData;
+		}
+
+		// Icons will be changed within event listeners when the zoom option is applied,
+		// which causes problems when feeding parameters to the function (it gets called immediately).
+		// Currying to the rescue, this function is partially applied so needs to be
+		// .call()-ed when used outside of an event listener.
+
+	}, {
+		key: '_makeIcon',
+		value: function _makeIcon(marker, type, zoom, anchor) {
+			var _this3 = this;
+
+			return function () {
+				var iconImg = zoom ? _this3._customMarkersSettings.zoom : _this3._customMarkersSettings.icon;
+
+				var icon = {
+					url: _this3._customMarkersSettings.path + type + iconImg + '.png',
+					origin: new google.maps.Point(0, 0),
+					anchor: anchor
+				};
+
+				marker.setIcon(icon);
+			};
+		}
+	}, {
+		key: '_createCustomMarkers',
+		value: function _createCustomMarkers() {
+			var _this4 = this;
+
+			this._poiData.forEach(function (poi, index) {
+				var type = poi.type;
+				var marker = poi.marker;
+
+				// Set standard icons
+				_this4._makeIcon(marker, type, false).call();
+
+				if (_this4._customMarkersSettings.zoom) {
+					marker.addListener('mouseover', _this4._makeIcon(marker, type, true, new google.maps.Point(14, 20)));
+					marker.addListener('mouseout', _this4._makeIcon(marker, type, false));
+				}
+			});
+		}
+	}, {
+		key: '_addCustomMarkerSubscribers',
+		value: function _addCustomMarkerSubscribers() {
+			var _this5 = this;
+
+			_PubSub2.default.subscribe('listItemMouseOver', function (topic, poi) {
+				console.log('in');
+				var type = poi.type;
+				var marker = poi.marker;
+				_this5._makeIcon(marker, type, true, new google.maps.Point(14, 20)).call();
+			});
+
+			_PubSub2.default.subscribe('listItemMouseOut', function (topic, poi) {
+				console.log('out');
+				var type = poi.type;
+				var marker = poi.marker;
+				_this5._makeIcon(marker, type, false).call();
+			});
+		}
+
+		// ---------- PUBLIC INTERFACE ----------
+
+	}, {
+		key: 'getPoiData',
+		value: function getPoiData(resetMarkers) {
+			if (resetMarkers === true) {
+				this._resetMarkers();
+			}
+			var filteredData = this._filterData();
+			return filteredData;
+		}
+	}, {
+		key: 'toggleFilter',
+		value: function toggleFilter(filter) {
+			var filterIndex = this._indexOf(filter, this._filterList);
+
+			if (filterIndex != -1) {
+				this._filterList.splice(filterIndex, 1);
+			} else {
+				this._filterList.push(filter);
+			}
+
+			_PubSub2.default.publish('dataUpdated', this.getPoiData(true));
+		}
+	}, {
+		key: 'addMarkerClickEvents',
+		value: function addMarkerClickEvents() {
+			this._poiData.forEach(function (poi, index) {
+				poi.marker.addListener('click', function () {
+					_PubSub2.default.publish('markerClicked', poi);
+				});
+			});
+		}
+	}, {
+		key: 'addCustomMarkers',
+		value: function addCustomMarkers(options) {
+			this._customMarkersSettings = options;
+			this._createCustomMarkers();
+			this._addCustomMarkerSubscribers();
+		}
 	}]);
 
-	return Marker;
+	return PoiData;
 }();
 
-exports.default = Marker;
+exports.default = PoiData;
 
-},{}],3:[function(require,module,exports){
+},{"./PubSub":6}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -225,6 +363,12 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _PubSub = require('./PubSub');
+
+var _PubSub2 = _interopRequireDefault(_PubSub);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var PoiList = function () {
@@ -233,14 +377,19 @@ var PoiList = function () {
 
 		this._listId = listId;
 
-		this._createList(poiArray);
+		this._updatePoiList(poiArray);
+
+		this._subscriptions();
 	}
 
 	_createClass(PoiList, [{
-		key: '_createList',
-		value: function _createList(poiArray) {
+		key: '_updatePoiList',
+		value: function _updatePoiList(poiArray) {
+			document.getElementById(this._listId).innerHTML = "";
 			var listHTML = this._makeListHTML(poiArray);
 			document.getElementById(this._listId).innerHTML = listHTML;
+
+			this._addListEventListeners(poiArray);
 		}
 	}, {
 		key: '_makeListHTML',
@@ -265,7 +414,7 @@ var PoiList = function () {
 			var distance = 0.2; //getDistance();
 			var rating = 4;
 
-			var HTML = '<li>';
+			var HTML = '<li data-key="' + poiDetail.key + '">';
 			HTML += '<img class="poi-icon" src="' + iconPath + '">';
 			HTML += '<h3>' + title + '</h3>';
 			HTML += '<span class="poi-distance">' + distance + ' miles from you</span>';
@@ -273,6 +422,52 @@ var PoiList = function () {
 			HTML += '</li>';
 
 			return HTML;
+		}
+	}, {
+		key: '_addListEventListeners',
+		value: function _addListEventListeners(poiArray) {
+			//TODO: refactor
+			var domList = document.getElementById('poi-list').getElementsByTagName('li');
+
+			[].forEach.call(domList, function (item, index) {
+				var key = item.getAttribute('data-key');
+				var poi = void 0;
+
+				for (var i = 0; i < poiArray.length; i++) {
+					if (poiArray[i].key == key.toString()) {
+						poi = poiArray[i];
+					}
+				}
+
+				item.addEventListener('mouseover', function () {
+					_PubSub2.default.publish('listItemMouseOver', poi);
+				});
+
+				item.addEventListener('mouseleave', function () {
+					_PubSub2.default.publish('listItemMouseOut', poi);
+				});
+
+				item.addEventListener('click', function () {
+					_PubSub2.default.publish('markerClicked', poi);
+				});
+			});
+		}
+
+		// --------------- PUBSUB INTERFACE ----------------------
+		// Contains all pubSub subscriptions
+
+	}, {
+		key: '_subscriptions',
+		value: function _subscriptions() {
+			var _this2 = this;
+
+			_PubSub2.default.subscribe('markerClicked', function (topic, poi) {
+				// add a little highlight animation?
+			});
+
+			_PubSub2.default.subscribe('dataUpdated', function (topic, newData) {
+				_this2._updatePoiList(newData);
+			});
 		}
 	}]);
 
@@ -354,7 +549,7 @@ exports.default = PoiList;
 // 	}
 // }
 
-},{}],5:[function(require,module,exports){
+},{"./PubSub":6}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -363,32 +558,36 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _Marker = require('./Marker');
+var _PubSub = require('./PubSub');
 
-var _Marker2 = _interopRequireDefault(_Marker);
+var _PubSub2 = _interopRequireDefault(_PubSub);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var PoiMap = function () {
-	function PoiMap(id, center) {
+	function PoiMap(id, center, poiData) {
 		_classCallCheck(this, PoiMap);
 
 		if (this._validateMapData(id, center)) {
+			// Create the map and provide reference to said map
+			// TODO: Do the id and center really need storing?
 			this._mapId = id;
 			this._mainLocation = center;
-
-			// Create the map and provide reference to said map
 			this._theMap = this._createMap();
-
 			// Create central marker and provide reference
-			this._mainMarker = _Marker2.default.createMarker(this._mainLocation, this._theMap);
+			this._mainMarker = this._createMarker(this._mainLocation, this._theMap);
+
+			// Initialise markers based on data passed
+			// data is not stored as it is updated by a PoiData object
+			this.updatePoiMarkers(poiData);
+			this._subscriptions();
 		}
 	}
 
-	// Creates and returns a new Google map. 
-	// Places the map inside the DOM element with the provided ID  
+	// Creates and returns a new Google map.
+	// Places the map inside the DOM element with the provided ID
 
 
 	_createClass(PoiMap, [{
@@ -403,6 +602,14 @@ var PoiMap = function () {
 			});
 
 			return map;
+		}
+	}, {
+		key: '_createMarker',
+		value: function _createMarker(position, map) {
+			return new google.maps.Marker({
+				position: position,
+				map: map
+			});
 		}
 	}, {
 		key: '_validateMapData',
@@ -440,263 +647,190 @@ var PoiMap = function () {
 		}
 	}, {
 		key: '_setBounds',
-		value: function _setBounds(poiArray) {
+		value: function _setBounds(poiData) {
 			this._bounds = new google.maps.LatLngBounds();
 
-			for (var i = 0; i < poiArray.length; i++) {
-				this._bounds.extend(poiArray[i].marker.getPosition());
+			this._bounds.extend(this._mainMarker.getPosition());
+			for (var i = 0; i < poiData.length; i++) {
+				this._bounds.extend(poiData[i].marker.getPosition());
 			}
-		}
 
-		// --------------- PUBLIC INTERFACE ----------------------
+			this._fitBounds();
+		}
 
 		// Initiates the bounds of the markers in an array
 
 	}, {
-		key: 'fitBounds',
-		value: function fitBounds(poiArray) {
-			this._setBounds(poiArray);
+		key: '_fitBounds',
+		value: function _fitBounds() {
 			this._theMap.fitBounds(this._bounds);
 		}
 	}, {
-		key: 'getGMap',
-		value: function getGMap() {
-			return this._theMap;
+		key: '_createInfoWindow',
+		value: function _createInfoWindow() {
+			this._infoWindow = new google.maps.InfoWindow({
+				maxWidth: 400
+			});
+		}
+	}, {
+		key: '_onDestroyInfoWindow',
+		value: function _onDestroyInfoWindow() {
+			var _this = this;
+
+			google.maps.event.addListener(this._infoWindow, 'closeclick', function () {
+				_this._fitBounds();
+			});
+		}
+
+		// Applys the map's infoWindow to the marker of the point of interest given
+
+	}, {
+		key: '_setInfoWindow',
+		value: function _setInfoWindow(poi) {
+			console.log(poi);
+			var contentString = this._composeInfoWindowString(poi);
+
+			this._infoWindow.setContent(contentString);
+			this._infoWindow.open(this._theMap, poi.marker);
+			this._theMap.panTo(poi.marker.getPosition());
+		}
+	}, {
+		key: '_composeInfoWindowString',
+		value: function _composeInfoWindowString(poi) {
+			var HTMLString;
+			HTMLString = '<div id="maps-window">';
+			HTMLString += '<h3>' + poi.name + '</h3>';
+			HTMLString += '<a href="' + poi.website_url + '">' + poi.website_url + '</a>';
+			HTMLString += '<p>' + poi.description + '</p>';
+			HTMLString += '</div>';
+
+			return HTMLString;
+		}
+
+		// --------------- PUBSUB INTERFACE ----------------------
+		// Contains all pubSub subscriptions
+
+	}, {
+		key: '_subscriptions',
+		value: function _subscriptions() {
+			var _this2 = this;
+
+			_PubSub2.default.subscribe('markerClicked', function (topic, poi) {
+				_this2._setInfoWindow(poi);
+			});
+
+			_PubSub2.default.subscribe('dataUpdated', function (topic, newData) {
+				_this2.updatePoiMarkers(newData);
+			});
+		}
+
+		// --------------- PUBLIC INTERFACE ----------------------
+
+		// Update interface called when subscribed to a subject
+
+	}, {
+		key: 'updatePoiMarkers',
+		value: function updatePoiMarkers(poiData) {
+			var _this3 = this;
+
+			var pois = poiData;
+
+			pois.forEach(function (item, index) {
+				item.marker.setMap(_this3._theMap);
+			});
+
+			this._setBounds(pois);
+		}
+	}, {
+		key: 'initialiseInfoWindow',
+		value: function initialiseInfoWindow() {
+			this._createInfoWindow();
+			this._onDestroyInfoWindow();
 		}
 	}]);
 
 	return PoiMap;
 }();
 
-// class PoiMap {
-// 	constructor(id, center, poiArray, options) {
-// 		// Validate data before proceeding
-// 		if (this._validateMapData(id, center)) {
-
-// 			// Store all parameters in local properties
-// 			this._mapId = id;
-// 			this._mainLocation = center;
-// 			this._poiArray = poiArray;
-
-// 			// Create the map and provide reference to said map
-// 			this._theMap = this._createMap();
-
-// 			// Create central marker and provide reference
-// 			this._mainMarker = this._createMarker(this._mainLocation);
-
-// 			// Create markers using poiArray and add them to each poi
-// 			this._addPoiMarkers();
-
-// 			// Set optionals
-
-// 			// If the data includes information for the infowindow initialise it
-// 			// and set click events
-// 			if (options.infoWindow) {
-// 				this._setInfoWindow();
-// 				this._addMarkerClickEvents();
-// 				this._onDestroyInfoWindow();
-// 			}
-
-// 			// If the data includes information for custom markers initialise them
-// 			if (options.customMarkers) {
-// 				this._customMarkersSettings = options.customMarkers;
-// 				this._createCustomMarkers();
-// 			}
-
-// 		}
-// 	}
-
-// 	// Creates and returns a new Google map. 
-// 	// Places the map inside DOM element with the provided ID  
-// 	_createMap() {
-// 		const mapDiv = document.getElementById(this._mapId);
-
-// 		const map = new google.maps.Map(mapDiv, {
-// 			center: this._mainLocation,
-// 			scrollwheel: false,
-// 			zoom: 15
-// 		});
-
-// 		return map;
-// 	}
-
-// 	// Creates and returns a new marker at the position given
-// 	// Places the marker on the current map
-// 	_createMarker(position) {
-// 		return new google.maps.Marker({
-// 			position: position,
-// 			map: this._theMap
-// 		});
-// 	}
-
-// 	// Uses the poiArray to create markers for each item in the array,
-// 	// this function also sets the bounds of the map to make sure the markers fit
-// 	// TODO: potentially make this immutable/return state so poiArray can be synced across application
-// 	// ^^^ Think about how Flux does it... maybe Pub/Sub?
-// 	_addPoiMarkers() {
-
-// 		this._poiArray.forEach((item, index) => {
-// 			item.marker = this._createMarker(item.coords);
-// 		});
-
-// 		this._setBounds();
-// 		this._fitBounds();
-// 	}
-
-// 	// Uses the poi markers to set the correct zoom level of the map
-// 	_setBounds() {
-// 		this._bounds = new google.maps.LatLngBounds();
-
-// 		for(var i = 0; i < this._poiArray.length; i++) {
-// 			this._bounds.extend(this._poiArray[i].marker.getPosition());
-// 		}
-// 	}
-
-// 	// Initiates the bounds set on the map
-// 	_fitBounds() {
-// 		this._theMap.fitBounds(this._bounds);
-// 	}
-
-// 	// -- Information window-specific functions
-
-// 	_setInfoWindow() {
-// 		this._infoWindow = new google.maps.InfoWindow({
-// 			maxWidth: 400
-// 		});
-// 	}
-
-// 	_addMarkerClickEvents() {
-// 		this._poiArray.forEach((poi, index) => {
-// 			poi.marker.addListener('click', () => {
-// 				this.createInfoWindow(index);
-// 			});
-// 		});
-// 	}
-
-// 	_composeInfoWindowString(poi) {
-// 		var HTMLString;
-// 		HTMLString = '<div id="maps-window">';
-// 		HTMLString += '<h3>' + poi.name + '</h3>';
-// 		HTMLString += '<a href="' + poi.website_url + '">' + poi.website_url + '</a>';
-// 		HTMLString += '<p>' + poi.description + '</p>';
-// 		HTMLString += '</div>';
-
-// 		return HTMLString;
-// 	}
-
-// 	_onDestroyInfoWindow() {
-// 		google.maps.event.addListener(this._infoWindow, 'closeclick', () => {
-// 			this._fitBounds();
-// 		});
-// 	}
-
-// 	// -- Custom marker functions
-
-// 	_createCustomMarkers() {
-
-// 		this._poiArray.forEach((poi, index) => {
-// 			let type = poi.type;
-// 			let marker = poi.marker;
-
-// 			// Set standard icons
-// 			this.makeIcon(marker, type, false).call();
-
-// 			if (this._customMarkersSettings.zoom) {
-// 				marker.addListener('mouseover', this.makeIcon(marker, type, true, new google.maps.Point(14, 20)));
-// 				marker.addListener('mouseout', this.makeIcon(marker, type, false));
-// 			}
-// 		});
-// 	}
-
-// 	// -- Utility functions
-
-// 	_validateMapData(id, center) {
-// 		if (id) {
-// 			if (typeof id !== 'string') {
-// 				console.error('Error: Map ID must be a string');
-// 				return false;
-// 			}
-// 			if (!document.getElementById(id)) {
-// 				console.error('Error: Map ID must be part of the DOM!');
-// 				return false;
-// 			}
-// 		} else {
-// 			console.error('Error: No Map ID present');
-// 			return false;
-// 		}
-
-// 		if (center) {
-// 			if (center.lat && center.lng) {
-// 				if (typeof center.lat !== 'number' || typeof center.lng !== 'number') {
-// 					console.error('Error: Lattitude and longitude must be numbers');
-// 					return false;
-// 				}
-// 			} else {
-// 				console.error('Error: Please provide central location lattitude and longitude');
-// 				return false;
-// 			}
-// 		} else {
-// 			console.error('Error: No central location provided');
-// 			return false;
-// 		}
-
-// 		return true;
-// 	}
-
-// 	// ----------------------- PUBLIC INTERFACE -------------------------------
-
-// 	// Applys the map's infoWindow to the marker of the point of interest given
-// 	// TODO: Does this need to take a poi instead of an index? 
-// 	createInfoWindow(poiIndex) {
-// 		let poi = this._poiArray[poiIndex];
-// 		let contentString = this._composeInfoWindowString(poi);
-
-// 		this._infoWindow.setContent(contentString);
-// 		this._infoWindow.open(this._theMap, poi.marker);
-// 		this._theMap.panTo(poi.marker.getPosition());
-// 	}
-
-// 	// Icons will be changed within event listeners when the zoom option is applied,
-// 	// which causes problems when feeding parameters to the function (it gets called immediately).
-// 	// Currying to the rescue, this function is partially applied so needs to be
-// 	// .call()-ed when used outside of an event listener.
-// 	makeIcon(marker, type, zoom, anchor) {
-// 		return (() => {
-// 			var iconImg = zoom ? this._customMarkersSettings.zoom : this._customMarkersSettings.icon;
-
-// 			var icon = {
-// 				url: this._customMarkersSettings.path + type + iconImg + '.png',
-// 				origin: new google.maps.Point(0, 0),
-// 				anchor: anchor
-// 			};
-
-// 			marker.setIcon(icon);
-// 		});
-// 	}
-
-// 	// Removes any markers from the map who's 'type' property matches the filter
-// 	// TODO: potentially make this immutable/return state so poiArray can be synced across application
-// 	// ^^^ Think about how Flux does it...
-// 	filterMarkers(filter) {
-// 		this._poiArray.forEach((item, index) => {
-// 			if (item.type === filter) {
-// 				if (item.marker.getMap() !== null) {
-// 					item.marker.setMap(null);
-// 				} else {
-// 					item.marker.setMap(this._theMap);
-// 				}
-// 			}
-// 		});
-// 	}
-
-// 	getPoiArray() {
-// 		return this._poiArray;
-// 	}
-// }
-
 exports.default = PoiMap;
 
-},{"./Marker":2}],6:[function(require,module,exports){
+},{"./PubSub":6}],6:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var PubSub = function () {
+  function PubSub() {
+    _classCallCheck(this, PubSub);
+
+    this.topics = [];
+    this.subscriberUid = -1;
+  }
+
+  _createClass(PubSub, [{
+    key: "publish",
+    value: function publish(topic, args) {
+      // Why would you publish a topic that doesn't exist?
+      if (!this.topics[topic]) {
+        return false;
+      }
+
+      var subscribers = this.topics[topic];
+      var subscriberCount = subscribers ? subscribers.length : 0;
+
+      while (subscriberCount--) {
+        subscribers[subscriberCount].func(topic, args);
+      }
+
+      return this;
+    }
+  }, {
+    key: "subscribe",
+    value: function subscribe(topic, func) {
+      if (!this.topics[topic]) {
+        this.topics[topic] = [];
+      }
+
+      var token = (++this.subscriberUid).toString();
+
+      this.topics[topic].push({
+        token: token,
+        func: func
+      });
+
+      return token;
+    }
+  }, {
+    key: "unsubscribe",
+    value: function unsubscribe(token) {
+      for (var m in this.topics) {
+        if (this.topics[m]) {
+          for (var i = 0, j = this.topics[m].length; i < j; i++) {
+            if (this.topics[m][i].token === token) {
+              this.topics[m].splice(i, 1);
+              return token;
+            }
+          }
+        }
+      }
+      return this;
+    }
+  }]);
+
+  return PubSub;
+}();
+
+var pubSub = new PubSub();
+
+exports.default = pubSub;
+
+},{}],7:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -757,7 +891,7 @@ var mainMarker = {
 exports.places = places;
 exports.mainMarker = mainMarker;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 var _MapsApp = require('./MapsApp');
@@ -769,7 +903,7 @@ var _mockdata = require('./data/mockdata');
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var options = {
-	infoWindow: 1,
+	infoWindow: true,
 	customMarkers: {
 		path: './img/amenity_icons/',
 		zoom: '_icon_large',
@@ -782,4 +916,4 @@ var myMap = new _MapsApp2.default('map', _mockdata.mainMarker, _mockdata.places,
 myMap.createList('amenity-list');
 // myMap.createFilter('filter-controls');
 
-},{"./MapsApp":1,"./data/mockdata":6}]},{},[7]);
+},{"./MapsApp":1,"./data/mockdata":7}]},{},[8]);
