@@ -1,8 +1,8 @@
-import MapsApp from './MapsApp';
-import { places, mainMarker} from './data/mockdata';
+import MapsApp from './MapsApp/MapsApp';
+import { places, mainMarker } from './data/mockdata';
 
 const options = {
-	infoWindow: 1,
+	infoWindow: true,
 	customMarkers: {
 		path: './img/amenity_icons/',
 		zoom: '_icon_large',
