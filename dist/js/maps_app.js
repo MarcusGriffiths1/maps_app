@@ -55,15 +55,6 @@ var MapsApp = function () {
 	// --------------- PUBLIC INTERFACE ----------------------
 
 	_createClass(MapsApp, [{
-<<<<<<< HEAD
-		key: '_initialise',
-		value: function _initialise() {
-			// this._addPoiMarkers();
-			this._theMap = new _PoiMap2.default(this._mapId, this._center, this._poiArray, this._options);
-		}
-	}, {
-=======
->>>>>>> test
 		key: 'createList',
 		value: function createList(listId) {
 			this._theList = new _PoiList2.default(listId, this._theData.getPoiData());
@@ -71,11 +62,6 @@ var MapsApp = function () {
 	}, {
 		key: 'createFilter',
 		value: function createFilter(filterId) {
-<<<<<<< HEAD
-			this._theFilter = _PoiFilter2.default.init(filterId, this._poiArray, this._theMap, this._theList);
-		}
-	}]);
-=======
 			this._theFilter = new _PoiFilter2.default(filterId, this._theData.getPoiData());
 		}
 	}]);
@@ -174,7 +160,6 @@ var PoiData = function () {
 			});
 			return filteredData;
 		}
->>>>>>> test
 
 		// Icons will be changed within event listeners when the zoom option is applied,
 		// which causes problems when feeding parameters to the function (it gets called immediately).
@@ -644,60 +629,7 @@ var PoiMap = function () {
 		value: function _createMarker(position, map) {
 			return new google.maps.Marker({
 				position: position,
-<<<<<<< HEAD
-				map: this._theMap
-			});
-		}
-
-		// Uses the poiArray to create markers for each item in the array,
-		// this function also sets the bounds of the map to make sure the markers fit
-		// TODO: potentially make this immutable/return state so poiArray can be synced across application
-		// ^^^ Think about how Flux does it... maybe Pub/Sub?
-
-	}, {
-		key: '_addPoiMarkers',
-		value: function _addPoiMarkers() {
-			var _this = this;
-
-			this._poiArray.forEach(function (item, index) {
-				item.marker = _this._createMarker(item.coords);
-			});
-
-			this._setBounds();
-			this._fitBounds();
-		}
-
-		// Uses the poi markers to set the correct zoom level of the map
-
-	}, {
-		key: '_setBounds',
-		value: function _setBounds() {
-			this._bounds = new google.maps.LatLngBounds();
-
-			for (var i = 0; i < this._poiArray.length; i++) {
-				this._bounds.extend(this._poiArray[i].marker.getPosition());
-			}
-		}
-
-		// Initiates the bounds set on the map
-
-	}, {
-		key: '_fitBounds',
-		value: function _fitBounds() {
-			this._theMap.fitBounds(this._bounds);
-		}
-
-		// -- Information window-specific functions
-
-	}, {
-		key: '_setInfoWindow',
-		value: function _setInfoWindow() {
-			this._infoWindow = new google.maps.InfoWindow({
-				maxWidth: 400
-
-=======
 				map: map
->>>>>>> test
 			});
 		}
 	}, {
@@ -813,13 +745,9 @@ var PoiMap = function () {
 			});
 		}
 
-<<<<<<< HEAD
-		// Removes any markers from the map who's 'type' property matches the filter
-=======
 		// --------------- PUBLIC INTERFACE ----------------------
 
 		// Update interface called when subscribed to a subject
->>>>>>> test
 
 	}, {
 		key: 'updatePoiMarkers',
