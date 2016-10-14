@@ -102,7 +102,6 @@ class PoiMap {
 
 	// Applys the map's infoWindow to the marker of the point of interest given
 	_setInfoWindow(poi) {
-		console.log(poi);
 		let contentString = this._composeInfoWindowString(poi);
 
 		this._infoWindow.setContent(contentString);
@@ -112,7 +111,7 @@ class PoiMap {
 
 	_composeInfoWindowString(poi) {
 		var HTMLString;
-		HTMLString = '<div id="maps-window">'; 
+		HTMLString = '<div id="maps-window">';
 		HTMLString += '<h3>' + poi.name + '</h3>';
 		HTMLString += '<a href="' + poi.website_url + '">' + poi.website_url + '</a>';
 		HTMLString += '<p>' + poi.description + '</p>';
@@ -130,6 +129,10 @@ class PoiMap {
 
 		pubSub.subscribe('dataUpdated', (topic, newData) => {
 			this.updatePoiMarkers(newData);
+		});
+
+		pubSub.subscribe('filterToggled', (topic, value) => {
+			this._infoWindow.close();
 		});
 	}
 
