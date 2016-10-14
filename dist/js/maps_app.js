@@ -62,7 +62,7 @@ var MapsApp = function () {
 	}, {
 		key: 'createFilter',
 		value: function createFilter(filterId) {
-			this._theFilter = _PoiFilter2.default.init(filterId, this._poiArray, this._theMap, this._theList);
+			this._theFilter = new _PoiFilter2.default(filterId, this._theData.getPoiData());
 		}
 	}]);
 
@@ -94,6 +94,7 @@ var PoiData = function () {
 
 		this._poiData = this._formatData(array);
 		this._filterList = [];
+		this._subscribers();
 	}
 
 	// Adds google maps markers and unique keys to each poi
@@ -206,17 +207,25 @@ var PoiData = function () {
 			var _this5 = this;
 
 			_PubSub2.default.subscribe('listItemMouseOver', function (topic, poi) {
-				console.log('in');
 				var type = poi.type;
 				var marker = poi.marker;
 				_this5._makeIcon(marker, type, true, new google.maps.Point(14, 20)).call();
 			});
 
 			_PubSub2.default.subscribe('listItemMouseOut', function (topic, poi) {
-				console.log('out');
 				var type = poi.type;
 				var marker = poi.marker;
 				_this5._makeIcon(marker, type, false).call();
+			});
+		}
+	}, {
+		key: '_subscribers',
+		value: function _subscribers() {
+			var _this6 = this;
+
+			_PubSub2.default.subscribe('filterToggled', function (topic, value) {
+				console.log(value);
+				_this6.toggleFilter(value);
 			});
 		}
 
@@ -271,90 +280,175 @@ exports.default = PoiData;
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
-        value: true
+  value: true
 });
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _PubSub = require('./PubSub');
+
+var _PubSub2 = _interopRequireDefault(_PubSub);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 var PoiFilter = function () {
+  function PoiFilter(filterId, poiData) {
+    _classCallCheck(this, PoiFilter);
 
-        var _theMap,
-            _theList,
-            _poiDetails,
-            _filterId,
-            _filters,
-            //if needed?
+    this._filterId = filterId;
 
-        init = function init(id, poiDetailsArray, map, list) {
+    this._setFilterArray(poiData);
+    this._createFilterForm();
+    this._addFilterEventListeners();
+  }
 
-                _filterId = id;
-                _poiDetails = poiDetailsArray;
-                _theMap = map;
-                _theList = list;
-                _setFilters();
+  _createClass(PoiFilter, [{
+    key: '_setFilterArray',
+    value: function _setFilterArray(poiData) {
+      this._filterArray = [];
+      var temp = {};
 
-                _createFilterForm();
-                _addFilterEventListeners();
-        },
+      for (var i in poiData) {
+        if (typeof temp[poiData[i].type] == "undefined") {
+          this._filterArray.push(poiData[i].type);
+        }
+        temp[poiData[i].type] = 0;
+      }
+    }
+  }, {
+    key: '_createFilterForm',
+    value: function _createFilterForm() {
+      var filterFormHTML = this._makeFilterFormHTML();
 
+      document.getElementById(this._filterId).innerHTML = filterFormHTML;
+    }
+  }, {
+    key: '_makeFilterFormHTML',
+    value: function _makeFilterFormHTML() {
+      var _this = this;
 
-        // Credit where credit's due: http://stackoverflow.com/questions/15125920/how-to-get-distinct-values-from-an-array-of-objects-in-javascript
-        _setFilters = function setFilters() {
+      var HTML;
 
-                _filters = [];
-                var temp = {};
+      HTML = '<form action="">';
 
-                for (var i in _poiDetails) {
-                        if (typeof temp[_poiDetails[i].type] == "undefined") {
-                                _filters.push(_poiDetails[i].type);
-                        }
-                        temp[_poiDetails[i].type] = 0;
-                }
-        },
-            _createFilterForm = function createFilterForm() {
+      this._filterArray.forEach(function (item, index) {
+        HTML += _this._makeFilterItemHTML(item);
+      });
 
-                var filterFormHTML = _makeFilterFormHTML();
+      HTML += '</form>';
 
-                document.getElementById(_filterId).innerHTML = filterFormHTML;
-        },
-            _makeFilterFormHTML = function makeFilterFormHTML() {
+      return HTML;
+    }
+  }, {
+    key: '_makeFilterItemHTML',
+    value: function _makeFilterItemHTML(item) {
+      var HTML = '<label for="' + item + '">' + item + '</label><input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
 
-                var HTML;
+      return HTML;
+    }
+  }, {
+    key: '_addFilterEventListeners',
+    value: function _addFilterEventListeners() {
+      var checkboxes = document.getElementsByName('filter');
 
-                HTML = '<form action="">';
+      Array.prototype.forEach.call(checkboxes, function (item) {
+        item.addEventListener('change', function () {
+          _PubSub2.default.publish('filterToggled', item.value);
+        });
+      });
+    }
+  }]);
 
-                _filters.forEach(function (item, index) {
-                        HTML += _makeFilterItemHTML(item);
-                });
-
-                HTML += '</form>';
-
-                return HTML;
-        },
-            _makeFilterItemHTML = function makeFilterItemHTML(item) {
-
-                var HTML = '<label for="' + item + '">' + item + '</label><input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
-
-                return HTML;
-        },
-            _addFilterEventListeners = function addFilterEventListeners() {
-
-                var checkboxes = document.getElementsByName('filter');
-
-                Array.prototype.forEach.call(checkboxes, function (item) {
-
-                        item.addEventListener('change', function () {
-                                _theMap.filterMarkers(this.value);
-                                _theList.filterListItem(this.value);
-                        });
-                });
-        };
-
-        return {
-                init: init
-        };
+  return PoiFilter;
 }();
 
 exports.default = PoiFilter;
 
-},{}],4:[function(require,module,exports){
+// var PoiFilter = (function() {
+//
+//   var _theMap,
+//       _theList,
+//       _poiDetails,
+//       _filterId,
+//       _filters, //if needed?
+//
+//       init = function init(id, poiDetailsArray, map, list) {
+//
+//         _filterId = id;
+//         _poiDetails = poiDetailsArray;
+//         _theMap = map;
+//         _theList = list;
+//         _setFilters();
+//
+//         _createFilterForm();
+//         _addFilterEventListeners();
+//
+//       },
+//
+//       // Credit where credit's due: http://stackoverflow.com/questions/15125920/how-to-get-distinct-values-from-an-array-of-objects-in-javascript
+//       _setFilters = function setFilters() {
+//
+//         _filters = [];
+//         var temp = {};
+//
+//         for (var i in _poiDetails) {
+//           if (typeof(temp[_poiDetails[i].type]) == "undefined") {
+//             _filters.push(_poiDetails[i].type);
+//           }
+//           temp[_poiDetails[i].type] = 0;
+//         }
+//       },
+//
+//       _createFilterForm = function createFilterForm() {
+//
+//         var filterFormHTML = _makeFilterFormHTML();
+//
+// 				document.getElementById(_filterId).innerHTML = filterFormHTML;
+//       },
+//
+//       _makeFilterFormHTML = function makeFilterFormHTML() {
+//
+//         var HTML;
+//
+//         HTML = '<form action="">';
+//
+//         _filters.forEach(function (item, index) {
+//           HTML += _makeFilterItemHTML(item);
+//         });
+//
+//         HTML += '</form>';
+//
+//         return HTML;
+//       },
+//
+//       _makeFilterItemHTML = function makeFilterItemHTML(item) {
+//
+//         var HTML = '<label for="' + item + '">' + item + '</label><input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
+//
+//         return HTML;
+//       },
+//
+//       _addFilterEventListeners = function addFilterEventListeners() {
+//
+//         var checkboxes = document.getElementsByName('filter');
+//
+//         Array.prototype.forEach.call(checkboxes, function(item) {
+//
+//           item.addEventListener('change', function() {
+//             _theMap.filterMarkers(this.value);
+//             _theList.filterListItem(this.value);
+//           });
+//         });
+//       };
+//
+//   return {
+//     init: init
+//   };
+// })();
+
+},{"./PubSub":6}],4:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -475,79 +569,6 @@ var PoiList = function () {
 }();
 
 exports.default = PoiList;
-
-// class PoiList {
-// 	constructor(id, poiArray, map) {
-// 		this._listId = id;
-// 		this._poiArray = poiArray;
-// 		this._theMap = map;
-
-// 		this._createList();
-// 		this._addListEventListeners();
-// 	}
-
-// 	_createList() {
-// 		let listHTML = this._makeListHTML();
-// 		document.getElementById(this._listId).innerHTML = listHTML;
-// 	}
-
-// 	_makeListHTML() {
-// 		let HTML = '<ul id="poi-list">';
-
-// 		this._poiArray.forEach((poiDetail, index) => {
-// 			HTML += this._makeListItemHTML(poiDetail);
-// 		});
-
-// 		HTML += '</ul>';
-// 		return HTML;
-// 	}
-
-// 	_makeListItemHTML(poiDetail) {
-// 		//TODO: make it dynamic!
-// 		let iconPath = "img/amenity_icons/" + poiDetail.type + "_icon_large.png"; //dynamic
-// 		let	title = poiDetail.name;
-// 		let	distance = 0.2; //getDistance();
-// 		let	rating = 4;
-
-// 		let HTML = '<li>';
-// 		HTML += '<img class="poi-icon" src="' + iconPath + '">';
-// 		HTML += '<h3>' + title + '</h3>';
-// 		HTML += '<span class="poi-distance">' + distance + ' miles from you</span>';
-// 		HTML += '<span class="poi-rating">Rating: <span>' + rating + '</span></span>';
-// 		HTML += '</li>';
-
-// 		return HTML;
-// 	}
-
-// 	_addListEventListeners() {
-// 		//TODO: refactor
-// 		this._domList = document.getElementById('poi-list').getElementsByTagName('li');
-// 		this._listItemDisplayValue = this._domList[0].style.display;
-
-// 		[].forEach.call(this._domList, (item, index) => {
-// 			item.addEventListener('mouseover', 	this._theMap.makeIcon(this._poiArray[index].marker, this._poiArray[index].type, true, new google.maps.Point(14, 20)));
-
-// 			item.addEventListener('mouseleave', this._theMap.makeIcon(this._poiArray[index].marker, this._poiArray[index].type, false));
-
-// 			item.addEventListener('click', () => {
-// 				this._theMap.createInfoWindow(index);
-// 			});
-// 		});
-// 	}
-
-// 	filterListItem(filter) {
-
-// 		this._poiArray.forEach((item, index) => {
-// 			if (item.type == filter) {
-// 				if (this._domList[index].style.display === 'none') {
-// 					this._domList[index].style.display = this._listItemDisplayValue;
-// 				} else {
-// 					this._domList[index].style.display = 'none';
-// 				}
-// 			}
-// 		});
-// 	}
-// }
 
 },{"./PubSub":6}],5:[function(require,module,exports){
 'use strict';
@@ -765,6 +786,12 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
+// This class is a very simple Publish/Subscribe implementation.
+// Acts as a mediator between the various modules of an application
+// Proudly borrowed from Addy Osmani's minimalist implemenation "pubsubz"
+// and simply updated with ES6 syntax.
+// Original code: https://github.com/addyosmani/pubsubz
+
 var PubSub = function () {
   function PubSub() {
     _classCallCheck(this, PubSub);
@@ -773,10 +800,16 @@ var PubSub = function () {
     this.subscriberUid = -1;
   }
 
+  // Broadcasts a topic to any subscribers
+  // passes any neccessary data for the subscriber to handle
+  // as needed.
+
+
   _createClass(PubSub, [{
     key: "publish",
     value: function publish(topic, args) {
       // Why would you publish a topic that doesn't exist?
+      // Make sure it's there first
       if (!this.topics[topic]) {
         return false;
       }
@@ -784,12 +817,18 @@ var PubSub = function () {
       var subscribers = this.topics[topic];
       var subscriberCount = subscribers ? subscribers.length : 0;
 
+      // Fire a given function on each subscriber
       while (subscriberCount--) {
         subscribers[subscriberCount].func(topic, args);
       }
 
       return this;
     }
+
+    // Allows functionality to be built into code based on the topic
+    // broadcasted. When a topic is published the function passed in as a
+    // parameter will be fired.
+
   }, {
     key: "subscribe",
     value: function subscribe(topic, func) {
@@ -797,6 +836,7 @@ var PubSub = function () {
         this.topics[topic] = [];
       }
 
+      // Add the subscriber to the list of topics with a unique token
       var token = (++this.subscriberUid).toString();
 
       this.topics[topic].push({
@@ -804,8 +844,14 @@ var PubSub = function () {
         func: func
       });
 
+      // Return the unique token in case the subscriber wants to
+      // unsubscribe from the topic.
       return token;
     }
+
+    // If a subscriber needs to unsubscribe it can pass in it's unique
+    // token as a parameter.
+
   }, {
     key: "unsubscribe",
     value: function unsubscribe(token) {
@@ -825,6 +871,10 @@ var PubSub = function () {
 
   return PubSub;
 }();
+
+// Instantiate the module so the same instance is shared accross the
+// application when imported.
+
 
 var pubSub = new PubSub();
 
@@ -914,6 +964,6 @@ var options = {
 var myMap = new _MapsApp2.default('map', _mockdata.mainMarker, _mockdata.places, options);
 
 myMap.createList('amenity-list');
-// myMap.createFilter('filter-controls');
+myMap.createFilter('filter-controls');
 
 },{"./MapsApp/MapsApp":1,"./data/mockdata":7}]},{},[8]);

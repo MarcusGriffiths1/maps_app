@@ -5,6 +5,7 @@ class PoiData {
 	constructor(array) {
 		this._poiData = this._formatData(array);
 		this._filterList = [];
+		this._subscribers();
 	}
 
 	// Adds google maps markers and unique keys to each poi
@@ -95,17 +96,22 @@ class PoiData {
 
 	_addCustomMarkerSubscribers() {
 		pubSub.subscribe('listItemMouseOver', (topic, poi) => {
-			console.log('in');
 			let type = poi.type;
 			let marker = poi.marker;
 			this._makeIcon(marker, type, true, new google.maps.Point(14, 20)).call();
 		});
 
 		pubSub.subscribe('listItemMouseOut', (topic, poi) => {
-			console.log('out');
 			let type = poi.type;
 			let marker = poi.marker;
 			this._makeIcon(marker, type, false).call();
+		});
+	}
+
+	_subscribers() {
+		pubSub.subscribe('filterToggled', (topic, value) => {
+			console.log(value);
+			this.toggleFilter(value);
 		});
 	}
 

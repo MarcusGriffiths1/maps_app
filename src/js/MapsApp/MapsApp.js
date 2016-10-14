@@ -31,7 +31,7 @@ class MapsApp {
 	}
 
 	createFilter(filterId) {
-		this._theFilter = PoiFilter.init(filterId, this._poiArray, this._theMap, this._theList);
+		this._theFilter = new PoiFilter(filterId, this._theData.getPoiData());
 	}
 }
 
