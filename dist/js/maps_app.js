@@ -36,8 +36,9 @@ var MapsApp = function () {
 		_classCallCheck(this, MapsApp);
 
 		// Setup the data and the map
+		this._center = center;
 		this._theData = new _PoiData2.default(poiDetailsArray);
-		this._theMap = new _PoiMap2.default(mapId, center, this._theData.getPoiData());
+		this._theMap = new _PoiMap2.default(mapId, this._center, this._theData.getPoiData());
 
 		// Setup any optional extras
 		this._options = options;
@@ -49,6 +50,10 @@ var MapsApp = function () {
 
 		if (this._options.customMarkers) {
 			this._theData.addCustomMarkers(this._options.customMarkers);
+		}
+
+		if (this._options.showDistance) {
+			this._theData.addDistances(center);
 		}
 	}
 
@@ -94,6 +99,7 @@ var PoiData = function () {
 
 		this._poiData = this._formatData(array);
 		this._filterList = [];
+		this._sortBy;
 		this._subscribers();
 	}
 
@@ -130,7 +136,6 @@ var PoiData = function () {
 		key: '_indexOf',
 		value: function _indexOf(item, array) {
 			var i = 0;
-
 			while (i < array.length) {
 				if (array[i] === item) {
 					return i;
@@ -140,25 +145,85 @@ var PoiData = function () {
 			return -1;
 		}
 	}, {
+		key: '_toggleFilter',
+		value: function _toggleFilter(filter) {
+			var filterIndex = this._indexOf(filter, this._filterList);
+
+			if (filterIndex != -1) {
+				this._filterList.splice(filterIndex, 1);
+			} else {
+				this._filterList.push(filter);
+			}
+
+			_PubSub2.default.publish('dataUpdated', this.getPoiData(true));
+		}
+	}, {
 		key: '_filterData',
 		value: function _filterData() {
 			var _this2 = this;
 
+			if (!this._filterList.length) {
+				return this._poiData;
+			}
+
 			var filteredData = this._poiData.filter(function (item) {
-				if (_this2._filterList.length) {
-					var isNotFiltered = true;
+				var isNotFiltered = true;
 
-					for (var i = 0; i < _this2._filterList.length; i++) {
-						if (_this2._filterList[i] === item.type) {
-							isNotFiltered = false;
-						}
+				for (var i = 0; i < _this2._filterList.length; i++) {
+					if (_this2._filterList[i] === item.type) {
+						isNotFiltered = false;
 					}
-
-					return isNotFiltered;
 				}
-				return true;
+
+				return isNotFiltered;
 			});
+
 			return filteredData;
+		}
+	}, {
+		key: '_addDistances',
+		value: function _addDistances(poi, currentPos, index) {
+			var _this3 = this;
+
+			var fromDest = new google.maps.LatLng(currentPos);
+			var toDest = poi.marker.getPosition();
+			var distance = void 0;
+			var dmService = new google.maps.DistanceMatrixService();
+
+			var callback = function callback(response, status) {
+				var distanceInMiles = (response.rows[0].elements[0].distance.value / 1000).toFixed(1);
+				poi.distance = distanceInMiles;
+				if (index == _this3._poiData.length - 1) {
+					_PubSub2.default.publish('dataUpdated', _this3.getPoiData());
+				}
+			};
+
+			dmService.getDistanceMatrix({
+				origins: [fromDest],
+				destinations: [toDest],
+				travelMode: 'DRIVING'
+			}, callback);
+		}
+	}, {
+		key: '_sortData',
+		value: function _sortData(poiData) {
+			var _this4 = this;
+
+			if (typeof this._sortBy == 'undefined') {
+				return poiData;
+			}
+
+			var sortedData = poiData.sort(function (a, b) {
+				if (a[_this4._sortBy] < b[_this4._sortBy]) {
+					return -1;
+				}
+				if (a[_this4._sortBy] > b[_this4._sortBy]) {
+					return 1;
+				}
+				return 0;
+			});
+
+			return sortedData;
 		}
 
 		// Icons will be changed within event listeners when the zoom option is applied,
@@ -169,13 +234,13 @@ var PoiData = function () {
 	}, {
 		key: '_makeIcon',
 		value: function _makeIcon(marker, type, zoom, anchor) {
-			var _this3 = this;
+			var _this5 = this;
 
 			return function () {
-				var iconImg = zoom ? _this3._customMarkersSettings.zoom : _this3._customMarkersSettings.icon;
+				var iconImg = zoom ? _this5._customMarkersSettings.zoom : _this5._customMarkersSettings.icon;
 
 				var icon = {
-					url: _this3._customMarkersSettings.path + type + iconImg + '.png',
+					url: _this5._customMarkersSettings.path + type + iconImg + '.png',
 					origin: new google.maps.Point(0, 0),
 					anchor: anchor
 				};
@@ -186,46 +251,46 @@ var PoiData = function () {
 	}, {
 		key: '_createCustomMarkers',
 		value: function _createCustomMarkers() {
-			var _this4 = this;
+			var _this6 = this;
 
 			this._poiData.forEach(function (poi, index) {
 				var type = poi.type;
 				var marker = poi.marker;
 
 				// Set standard icons
-				_this4._makeIcon(marker, type, false).call();
+				_this6._makeIcon(marker, type, false).call();
 
-				if (_this4._customMarkersSettings.zoom) {
-					marker.addListener('mouseover', _this4._makeIcon(marker, type, true, new google.maps.Point(14, 20)));
-					marker.addListener('mouseout', _this4._makeIcon(marker, type, false));
+				if (_this6._customMarkersSettings.zoom) {
+					marker.addListener('mouseover', _this6._makeIcon(marker, type, true, new google.maps.Point(14, 20)));
+					marker.addListener('mouseout', _this6._makeIcon(marker, type, false));
 				}
 			});
 		}
 	}, {
 		key: '_addCustomMarkerSubscribers',
 		value: function _addCustomMarkerSubscribers() {
-			var _this5 = this;
+			var _this7 = this;
 
 			_PubSub2.default.subscribe('listItemMouseOver', function (topic, poi) {
 				var type = poi.type;
 				var marker = poi.marker;
-				_this5._makeIcon(marker, type, true, new google.maps.Point(14, 20)).call();
+				_this7._makeIcon(marker, type, true, new google.maps.Point(14, 20)).call();
 			});
 
 			_PubSub2.default.subscribe('listItemMouseOut', function (topic, poi) {
 				var type = poi.type;
 				var marker = poi.marker;
-				_this5._makeIcon(marker, type, false).call();
+				_this7._makeIcon(marker, type, false).call();
 			});
 		}
 	}, {
 		key: '_subscribers',
 		value: function _subscribers() {
-			var _this6 = this;
+			var _this8 = this;
 
 			_PubSub2.default.subscribe('filterToggled', function (topic, value) {
 				console.log(value);
-				_this6.toggleFilter(value);
+				_this8._toggleFilter(value);
 			});
 		}
 
@@ -238,20 +303,8 @@ var PoiData = function () {
 				this._resetMarkers();
 			}
 			var filteredData = this._filterData();
-			return filteredData;
-		}
-	}, {
-		key: 'toggleFilter',
-		value: function toggleFilter(filter) {
-			var filterIndex = this._indexOf(filter, this._filterList);
-
-			if (filterIndex != -1) {
-				this._filterList.splice(filterIndex, 1);
-			} else {
-				this._filterList.push(filter);
-			}
-
-			_PubSub2.default.publish('dataUpdated', this.getPoiData(true));
+			var sortedData = this._sortData(filteredData);
+			return sortedData;
 		}
 	}, {
 		key: 'addMarkerClickEvents',
@@ -269,6 +322,15 @@ var PoiData = function () {
 			this._createCustomMarkers();
 			this._addCustomMarkerSubscribers();
 		}
+	}, {
+		key: 'addDistances',
+		value: function addDistances(center) {
+			var _this9 = this;
+
+			this._poiData.forEach(function (poi, index) {
+				_this9._addDistances(poi, center, index);
+			});
+		}
 	}]);
 
 	return PoiData;
@@ -277,7 +339,7 @@ var PoiData = function () {
 exports.default = PoiData;
 
 },{"./PubSub":6}],3:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -285,7 +347,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _PubSub = require('./PubSub');
+var _PubSub = require("./PubSub");
 
 var _PubSub2 = _interopRequireDefault(_PubSub);
 
@@ -305,7 +367,7 @@ var PoiFilter = function () {
   }
 
   _createClass(PoiFilter, [{
-    key: '_setFilterArray',
+    key: "_setFilterArray",
     value: function _setFilterArray(poiData) {
       this._filterArray = [];
       var temp = {};
@@ -318,38 +380,37 @@ var PoiFilter = function () {
       }
     }
   }, {
-    key: '_createFilterForm',
+    key: "_createFilterForm",
     value: function _createFilterForm() {
       var filterFormHTML = this._makeFilterFormHTML();
 
       document.getElementById(this._filterId).innerHTML = filterFormHTML;
     }
   }, {
-    key: '_makeFilterFormHTML',
+    key: "_makeFilterFormHTML",
     value: function _makeFilterFormHTML() {
       var _this = this;
 
-      var HTML;
-
-      HTML = '<form action="">';
+      var HTML = "";
 
       this._filterArray.forEach(function (item, index) {
         HTML += _this._makeFilterItemHTML(item);
       });
 
-      HTML += '</form>';
-
       return HTML;
     }
   }, {
-    key: '_makeFilterItemHTML',
+    key: "_makeFilterItemHTML",
     value: function _makeFilterItemHTML(item) {
-      var HTML = '<label for="' + item + '">' + item + '</label><input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
+      var HTML = '<li class="filters__item">';
+      HTML += '<input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
+      HTML += '<label for="' + item + '">' + item + '</label>';
+      HTML += '</li>';
 
       return HTML;
     }
   }, {
-    key: '_addFilterEventListeners',
+    key: "_addFilterEventListeners",
     value: function _addFilterEventListeners() {
       var checkboxes = document.getElementsByName('filter');
 
@@ -408,13 +469,13 @@ var PoiList = function () {
 		value: function _makeListHTML(poiArray) {
 			var _this = this;
 
-			var HTML = '<ul id="poi-list">';
+			var HTML = '';
 
 			poiArray.forEach(function (poiDetail, index) {
 				HTML += _this._makeListItemHTML(poiDetail);
 			});
 
-			HTML += '</ul>';
+			HTML += '';
 			return HTML;
 		}
 	}, {
@@ -423,14 +484,17 @@ var PoiList = function () {
 			//TODO: make it dynamic!
 			var iconPath = "img/amenity_icons/" + poiDetail.type + "_icon_large.png"; //dynamic
 			var title = poiDetail.name;
-			var distance = 0.2; //getDistance();
 			var rating = 4;
 
-			var HTML = '<li data-key="' + poiDetail.key + '">';
-			HTML += '<img class="poi-icon" src="' + iconPath + '">';
-			HTML += '<h3>' + title + '</h3>';
-			HTML += '<span class="poi-distance">' + distance + ' miles from you</span>';
-			HTML += '<span class="poi-rating">Rating: <span>' + rating + '</span></span>';
+			var HTML = '<li class="poi" data-key="' + poiDetail.key + '">';
+			HTML += '<img class="poi__icon" src="' + iconPath + '">';
+			HTML += '<h3 class="poi__title">' + title + '</h3>';
+
+			if (typeof poiDetail.distance != 'undefined') {
+				HTML += '<span class="poi__distance">' + poiDetail.distance + ' from you</span>';
+			}
+
+			HTML += '<span class="poi__rating">Rating: <span>' + rating + '</span></span>';
 			HTML += '</li>';
 
 			return HTML;
@@ -439,7 +503,7 @@ var PoiList = function () {
 		key: '_addListEventListeners',
 		value: function _addListEventListeners(poiArray) {
 			//TODO: refactor
-			var domList = document.getElementById('poi-list').getElementsByTagName('li');
+			var domList = document.getElementById(this._listId).getElementsByTagName('li');
 
 			[].forEach.call(domList, function (item, index) {
 				var key = item.getAttribute('data-key');
@@ -756,7 +820,6 @@ var PubSub = function () {
       if (!this.topics[topic]) {
         this.topics[topic] = [];
       }
-
       // Add the subscriber to the list of topics with a unique token
       var token = (++this.subscriberUid).toString();
 
@@ -835,15 +898,6 @@ var places = [{
 		"lng": -16.72445
 	}
 }, {
-	"name": "Claddagh Irish Bar",
-	"type": "restaurant",
-	"description": "Always a friendly atmosphere",
-	"website_url": "http://www.claddagh.com",
-	"coords": {
-		"lat": 28.05,
-		"lng": -16.7166667
-	}
-}, {
 	"name": "Taylor&apos;s Lounge",
 	"type": "bar",
 	"description": "A cool bar and stuff",
@@ -851,6 +905,15 @@ var places = [{
 	"coords": {
 		"lat": 28.05176,
 		"lng": -16.71619
+	}
+}, {
+	"name": "Claddagh Irish Bar",
+	"type": "restaurant",
+	"description": "Always a friendly atmosphere",
+	"website_url": "http://www.claddagh.com",
+	"coords": {
+		"lat": 28.05,
+		"lng": -16.7166667
 	}
 }];
 
@@ -879,12 +942,14 @@ var options = {
 		path: './img/amenity_icons/',
 		zoom: '_icon_large',
 		icon: '_icon_small'
-	}
+	},
+	showDistance: true,
+	sortBy: ['type', 'distance']
 };
 
 var myMap = new _MapsApp2.default('map', _mockdata.mainMarker, _mockdata.places, options);
 
-myMap.createList('amenity-list');
-myMap.createFilter('filter-controls');
+myMap.createList('js-amenity-list');
+myMap.createFilter('js-filter-controls');
 
 },{"./MapsApp/MapsApp":1,"./data/mockdata":7}]},{},[8]);

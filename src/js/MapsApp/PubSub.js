@@ -38,7 +38,6 @@ class PubSub {
     if (!this.topics[topic]) {
       this.topics[topic] =  [];
     }
-
     // Add the subscriber to the list of topics with a unique token
     let token = (++this.subscriberUid).toString();
 

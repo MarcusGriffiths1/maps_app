@@ -8,8 +8,9 @@ class MapsApp {
 
 	constructor(mapId, center, poiDetailsArray, options) {
 		// Setup the data and the map
+		this._center = center;
 		this._theData = new PoiData(poiDetailsArray);
-		this._theMap = new PoiMap(mapId, center, this._theData.getPoiData());
+		this._theMap = new PoiMap(mapId, this._center, this._theData.getPoiData());
 
 		// Setup any optional extras
 		this._options = options;
@@ -21,6 +22,10 @@ class MapsApp {
 
 		if (this._options.customMarkers) {
 			this._theData.addCustomMarkers(this._options.customMarkers);
+		}
+
+		if (this._options.showDistance) {
+			this._theData.addDistances(center);
 		}
 	}
 

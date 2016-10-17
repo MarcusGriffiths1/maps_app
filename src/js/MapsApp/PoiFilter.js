@@ -29,21 +29,20 @@ class PoiFilter {
 
   _makeFilterFormHTML() {
 
-    var HTML;
-
-    HTML = '<form action="">';
+    let HTML = "";
 
     this._filterArray.forEach((item, index) => {
       HTML += this._makeFilterItemHTML(item);
     });
 
-    HTML += '</form>';
-
     return HTML;
   }
 
   _makeFilterItemHTML(item) {
-    var HTML = '<label for="' + item + '">' + item + '</label><input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
+    let HTML = '<li class="filters__item">'
+    HTML += '<input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
+    HTML += '<label for="' + item + '">' + item + '</label>';
+    HTML += '</li>';
 
     return HTML;
   }

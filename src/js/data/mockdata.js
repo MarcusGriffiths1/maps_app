@@ -30,16 +30,6 @@ const places = [
 		}
 	},
 	{
-		"name": "Claddagh Irish Bar",
-		"type": "restaurant",
-		"description": "Always a friendly atmosphere",
-		"website_url": "http://www.claddagh.com",
-		"coords": {
-			"lat": 28.05,
-			"lng": -16.7166667
-		}
-	},
-	{
 		"name": "Taylor&apos;s Lounge",
 		"type": "bar",
 		"description": "A cool bar and stuff",
@@ -47,6 +37,16 @@ const places = [
 		"coords": {
 			"lat": 28.05176,
 			"lng": -16.71619
+		}
+	},
+	{
+		"name": "Claddagh Irish Bar",
+		"type": "restaurant",
+		"description": "Always a friendly atmosphere",
+		"website_url": "http://www.claddagh.com",
+		"coords": {
+			"lat": 28.05,
+			"lng": -16.7166667
 		}
 	}
 ];

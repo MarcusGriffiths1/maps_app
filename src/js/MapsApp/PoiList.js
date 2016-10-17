@@ -18,13 +18,13 @@ class PoiList {
 	}
 
 	_makeListHTML(poiArray) {
-		let HTML = '<ul id="poi-list">';
+		let HTML = '';
 
 		poiArray.forEach((poiDetail, index) => {
 			HTML += this._makeListItemHTML(poiDetail);
 		});
 
-		HTML += '</ul>';
+		HTML += '';
 		return HTML;
 	}
 
@@ -32,14 +32,17 @@ class PoiList {
 		//TODO: make it dynamic!
 		let iconPath = "img/amenity_icons/" + poiDetail.type + "_icon_large.png"; //dynamic
 		let	title = poiDetail.name;
-		let	distance = 0.2; //getDistance();
 		let	rating = 4;
 
-		let HTML = '<li data-key="' + poiDetail.key + '">';
-		HTML += '<img class="poi-icon" src="' + iconPath + '">';
-		HTML += '<h3>' + title + '</h3>';
-		HTML += '<span class="poi-distance">' + distance + ' miles from you</span>';
-		HTML += '<span class="poi-rating">Rating: <span>' + rating + '</span></span>';
+		let HTML = '<li class="poi" data-key="' + poiDetail.key + '">';
+		HTML += '<img class="poi__icon" src="' + iconPath + '">';
+		HTML += '<h3 class="poi__title">' + title + '</h3>';
+
+		if (typeof(poiDetail.distance) != 'undefined') {
+				HTML += '<span class="poi__distance">' + poiDetail.distance + ' from you</span>';
+		}
+
+		HTML += '<span class="poi__rating">Rating: <span>' + rating + '</span></span>';
 		HTML += '</li>';
 
 		return HTML;
@@ -47,7 +50,7 @@ class PoiList {
 
 	_addListEventListeners(poiArray) {
 		//TODO: refactor
-		let domList = document.getElementById('poi-list').getElementsByTagName('li');
+		let domList = document.getElementById(this._listId).getElementsByTagName('li');
 
 		[].forEach.call(domList, (item, index) => {
 			let key = item.getAttribute('data-key');

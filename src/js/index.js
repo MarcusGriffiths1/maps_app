@@ -7,10 +7,12 @@ const options = {
 		path: './img/amenity_icons/',
 		zoom: '_icon_large',
 		icon: '_icon_small'
-	}
+	},
+	showDistance: true,
+	sortBy: ['type', 'distance']
 };
 
 var myMap = new MapsApp('map', mainMarker, places, options);
 
-myMap.createList('amenity-list');
-myMap.createFilter('filter-controls');
+myMap.createList('js-amenity-list');
+myMap.createFilter('js-filter-controls');

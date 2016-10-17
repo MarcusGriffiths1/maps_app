@@ -5,6 +5,7 @@ class PoiData {
 	constructor(array) {
 		this._poiData = this._formatData(array);
 		this._filterList = [];
+		this._sortBy;
 		this._subscribers();
 	}
 
@@ -32,7 +33,6 @@ class PoiData {
 
 	_indexOf(item, array) {
 		var i = 0;
-
 		while (i < array.length) {
 			if (array[i] === item) {
 				return i;
@@ -42,9 +42,24 @@ class PoiData {
 		return -1;
 	}
 
+	_toggleFilter(filter) {
+		let filterIndex = this._indexOf(filter, this._filterList);
+
+		if(filterIndex != -1) {
+			this._filterList.splice(filterIndex, 1);
+		} else {
+			this._filterList.push(filter);
+		}
+
+		pubSub.publish('dataUpdated', this.getPoiData(true));
+	}
+
 	_filterData() {
+		if (!this._filterList.length) {
+			return this._poiData;
+		}
+
 		let filteredData = this._poiData.filter((item) => {
-			if (this._filterList.length) {
 				let isNotFiltered = true;
 
 				for(var i = 0; i < this._filterList.length; i++) {
@@ -54,10 +69,49 @@ class PoiData {
 				}
 
 				return isNotFiltered;
-			}
-			return true;
 		});
+
 		return filteredData;
+	}
+
+	_addDistances(poi, currentPos, index) {
+		let fromDest = new google.maps.LatLng(currentPos);
+		let toDest = poi.marker.getPosition();
+		let distance;
+		let dmService = new google.maps.DistanceMatrixService();
+
+		let callback = (response, status) => {
+			let distanceInMiles = (response.rows[0].elements[0].distance.value / 1000).toFixed(1);
+			poi.distance = distanceInMiles;
+			if (index == this._poiData.length - 1) {
+				pubSub.publish('dataUpdated', this.getPoiData());
+			}
+		};
+
+		dmService.getDistanceMatrix({
+			origins: [fromDest],
+			destinations: [toDest],
+			travelMode: 'DRIVING'
+		}, callback);
+
+	}
+
+	_sortData(poiData) {
+		if (typeof(this._sortBy) == 'undefined') {
+			return poiData;
+		}
+
+		let sortedData = poiData.sort((a, b) => {
+			if (a[this._sortBy] < b[this._sortBy]) {
+				return -1;
+			}
+			if (a[this._sortBy] > b[this._sortBy]) {
+				return 1;
+			}
+			return 0;
+		});
+
+		return sortedData;
 	}
 
 	// Icons will be changed within event listeners when the zoom option is applied,
@@ -111,7 +165,7 @@ class PoiData {
 	_subscribers() {
 		pubSub.subscribe('filterToggled', (topic, value) => {
 			console.log(value);
-			this.toggleFilter(value);
+			this._toggleFilter(value);
 		});
 	}
 
@@ -122,19 +176,8 @@ class PoiData {
 			this._resetMarkers();
 		}
 		let filteredData = this._filterData();
-		return filteredData;
-	}
-
-	toggleFilter(filter) {
-		let filterIndex = this._indexOf(filter, this._filterList);
-
-		if(filterIndex != -1) {
-			this._filterList.splice(filterIndex, 1);
-		} else {
-			this._filterList.push(filter);
-		}
-
-		pubSub.publish('dataUpdated', this.getPoiData(true));
+		let sortedData = this._sortData(filteredData);
+		return sortedData;
 	}
 
 	addMarkerClickEvents() {
@@ -149,6 +192,12 @@ class PoiData {
 		this._customMarkersSettings = options;
 		this._createCustomMarkers();
 		this._addCustomMarkerSubscribers();
+	}
+
+	addDistances(center) {
+		this._poiData.forEach((poi, index) => {
+			this._addDistances(poi, center, index);
+		});
 	}
 }
 
