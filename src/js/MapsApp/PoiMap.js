@@ -114,7 +114,7 @@ class PoiMap {
 		var HTMLString;
 		HTMLString = '<div id="maps-window">';
 		HTMLString += '<h3>' + poi.name + '</h3>';
-		HTMLString += '<a href="' + poi.website_url + '">Go to website</a>';
+		HTMLString += '<a target="_blank" href="' + poi.website_url + '">Go to website</a>';
 		HTMLString += '<p>' + poi.description + '</p>';
 		HTMLString += '</div>';
 

@@ -182,7 +182,7 @@ var PoiData = function () {
 		}
 	}, {
 		key: '_addDistances',
-		value: function _addDistances(markerPositions, currentPos) {
+		value: function _addDistances(markerPositions, currentPos, array) {
 			var _this3 = this;
 
 			var fromDest = new google.maps.LatLng(currentPos);
@@ -196,10 +196,9 @@ var PoiData = function () {
 			}, function (response, status) {
 				response.rows[0].elements.forEach(function (element, index) {
 					var distanceInMiles = (element.distance.value / 1000).toFixed(1);
-					_this3._poiData[index].distance = distanceInMiles;
+					array[index].distance = distanceInMiles;
 				});
 
-				// 	console.log(this._poiData);
 				_PubSub2.default.publish('dataUpdated', _this3.getPoiData());
 			});
 		}
@@ -328,11 +327,10 @@ var PoiData = function () {
 	}, {
 		key: 'addDistances',
 		value: function addDistances(center) {
-			var markerPositions = [];
-			this._poiData.forEach(function (poi, index) {
-				markerPositions.push(poi.marker.getPosition());
+			var markerPositions = this._poiData.map(function (poi, index) {
+				return poi.marker.getPosition();
 			});
-			this._addDistances(markerPositions, center);
+			this._addDistances(markerPositions, center, this._poiData);
 		}
 	}]);
 
@@ -742,7 +740,7 @@ var PoiMap = function () {
 			var HTMLString;
 			HTMLString = '<div id="maps-window">';
 			HTMLString += '<h3>' + poi.name + '</h3>';
-			HTMLString += '<a href="' + poi.website_url + '">Go to website</a>';
+			HTMLString += '<a target="_blank" href="' + poi.website_url + '">Go to website</a>';
 			HTMLString += '<p>' + poi.description + '</p>';
 			HTMLString += '</div>';
 

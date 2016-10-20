@@ -74,7 +74,7 @@ class PoiData {
 		return filteredData;
 	}
 
-	_addDistances(markerPositions, currentPos) {
+	_addDistances(markerPositions, currentPos, array) {
 		let fromDest = new google.maps.LatLng(currentPos);
 		let distance;
 		let dmService = new google.maps.DistanceMatrixService();
@@ -86,10 +86,9 @@ class PoiData {
 		}, (response, status) => {
 			response.rows[0].elements.forEach((element, index) => {
 				let distanceInMiles = (element.distance.value / 1000).toFixed(1);
-				this._poiData[index].distance = distanceInMiles;
+				array[index].distance = distanceInMiles;
 			});
-
-			// 	console.log(this._poiData);
+			
 			pubSub.publish('dataUpdated', this.getPoiData());
 		});
 
@@ -198,11 +197,10 @@ class PoiData {
 	}
 
 	addDistances(center) {
-		let markerPositions = [];
-		this._poiData.forEach((poi, index) => {
-			markerPositions.push(poi.marker.getPosition());
+		let markerPositions = this._poiData.map((poi, index) => {
+			return poi.marker.getPosition();
 		});
-		this._addDistances(markerPositions, center);
+		this._addDistances(markerPositions, center, this._poiData);
 	}
 }
 

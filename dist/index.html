@@ -3,18 +3,20 @@
 <head>
 	<meta charset="UTF-8">
 	<title>MapsApp</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link href="https://fonts.googleapis.com/css?family=Proza+Libre" rel="stylesheet">
 	<script src="https://use.fontawesome.com/d6a674cd9a.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.19.0/TweenMax.min.js"></script>
 	<link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-	<header class="header">
-		<div class="container">
-			<h1>What's in your area?</h1>
-		</div>
-	</header>
+	<div class="loading"></div>
 	<div class="main-container">
+		<header class="header">
+			<div class="container">
+				<h1>What's in your area?</h1>
+			</div>
+		</header>
 		<div class="map-wrapper">
 			<div class="container map-container">
 				<div class="filters">
@@ -40,6 +42,11 @@
 	<script src="https://maps.googleapis.com/maps/api/js"></script>
 	<script src="js/maps_app.min.js"></script>
 	<script>
+	window.onload = function() {
+		var loadScreen = document.getElementsByClassName('loading')[0];
+		TweenMax.to(loadScreen, 0.5, {opacity: 0, display: 'none'});
+	};
+
 	var button = document.getElementById('js-expand');
 	var listContainer = document.getElementsByClassName('filters__list')[0];
 	var listItems = document.getElementsByClassName('filters__item');

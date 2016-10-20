@@ -2,6 +2,14 @@
 $background:  #acc6c8;
 $primary:  #acc6c8;
 
+.loading {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  z-index: 1001;
+  background-color: white;
+}
+
 html { font-family: 'Proza Libre', sans-serif; height: 100%;}
 
 h1 {
@@ -23,6 +31,7 @@ h2 {
 html, body {
   display: block;
   height: 100%;
+  background-color: $background;
 }
 
 .u-cf:after {
@@ -32,7 +41,7 @@ html, body {
 }
 
 .header {
-  width: 100;
+  width: 100%;
   height: 70px;
   box-shadow: 0px 5px 5px #EEE;
   background-color: #FFF;
@@ -40,7 +49,7 @@ html, body {
 
 .main-container {
   background-color: $background;
-  height: calc(100% - 70px);
+  height: 100%;
 }
 
 .map-wrapper {
@@ -63,7 +72,6 @@ html, body {
 /*-------------- Poi List --------------*/
 
 .pois {
-  float: right;
   width: 100%;
   height: 400px;
 
@@ -72,13 +80,14 @@ html, body {
     margin-bottom: 15px;
   }
   &__list {
-    // overflow-y: scroll;
+    overflow-y: scroll;
     width: 103%;
     height: 100%;
     padding-left: 0;
     margin-left: -3%;
   }
   .poi {
+    vertical-align: top;
     box-sizing: border-box;
     background-color: #FAFAFA;
     list-style: none;
@@ -104,6 +113,18 @@ html, body {
       position: absolute; top: 0; bottom: 0; left: 10px;
     }
     &__rating { display: none; }
+  }
+}
+
+@media screen and (max-width: 970px) {
+  .pois {
+    .poi { width: 46%; }
+  }
+}
+
+@media screen and (max-width: 660px) {
+  .pois {
+    .poi { width: 97%; }
   }
 }
 
@@ -135,10 +156,9 @@ html, body {
     text-align: center;
   }
   &__list {
-    border-radius: 3px;
-    overflow: hidden;
     position: absolute; left: 0; top: 125%;
     width: 100%;
+    overflow: hidden;
   }
   &__label {
     display: block;
@@ -154,7 +174,7 @@ html, body {
   }
   &__item {
     background-color: #FFF;
-    box-shadow: 0px 2px 3px #CCC;
+    box-shadow: 0px 3px 4px #AAA;
     color: #666;
     margin-bottom: 1px;
     position: relative;
@@ -190,12 +210,27 @@ html, body {
     font-size: 1.2em;
     margin-bottom: 10px;
     margin-top: 5px;
+    margin-right: 10px;
+    display: inline-block;
   }
   a {
     text-decoration: none;
-    display: block;
+    display: inline-block;
     font-weight: 700;
     margin-bottom: 10px;
   }
-  p {}
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: darken($background, 10%);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background-color: darken($background, 20%);
 }
