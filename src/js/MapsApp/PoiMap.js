@@ -26,7 +26,8 @@ class PoiMap {
 		const map = new google.maps.Map(mapDiv, {
 			center: this._mainLocation,
 			scrollwheel: false,
-			zoom: 15
+			zoom: 15,
+			styles:[{"featureType":"administrative","elementType":"labels.text.fill","stylers":[{"color":"#444444"}]},{"featureType":"landscape","elementType":"all","stylers":[{"color":"#f2f2f2"}]},{"featureType":"poi","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"poi.business","elementType":"geometry.fill","stylers":[{"visibility":"on"}]},{"featureType":"road","elementType":"all","stylers":[{"saturation":-100},{"lightness":45}]},{"featureType":"road.highway","elementType":"all","stylers":[{"visibility":"simplified"}]},{"featureType":"road.arterial","elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"featureType":"transit","elementType":"all","stylers":[{"visibility":"off"}]},{"featureType":"water","elementType":"all","stylers":[{"color":"#b4d4e1"},{"visibility":"on"}]}]
 		});
 
 		return map;
@@ -113,7 +114,7 @@ class PoiMap {
 		var HTMLString;
 		HTMLString = '<div id="maps-window">';
 		HTMLString += '<h3>' + poi.name + '</h3>';
-		HTMLString += '<a href="' + poi.website_url + '">' + poi.website_url + '</a>';
+		HTMLString += '<a href="' + poi.website_url + '">Go to website</a>';
 		HTMLString += '<p>' + poi.description + '</p>';
 		HTMLString += '</div>';
 

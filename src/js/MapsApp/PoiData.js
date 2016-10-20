@@ -2,10 +2,10 @@ import pubSub from './PubSub';
 
 class PoiData {
 
-	constructor(array) {
+	constructor(array, window) {
 		this._poiData = this._formatData(array);
 		this._filterList = [];
-		this._sortBy;
+		this._sortBy = 'type';
 		this._subscribers();
 	}
 
@@ -74,34 +74,36 @@ class PoiData {
 		return filteredData;
 	}
 
-	_addDistances(poi, currentPos, index) {
+	_addDistances(markerPositions, currentPos) {
 		let fromDest = new google.maps.LatLng(currentPos);
-		let toDest = poi.marker.getPosition();
 		let distance;
 		let dmService = new google.maps.DistanceMatrixService();
 
-		let callback = (response, status) => {
-			let distanceInMiles = (response.rows[0].elements[0].distance.value / 1000).toFixed(1);
-			poi.distance = distanceInMiles;
-			if (index == this._poiData.length - 1) {
-				pubSub.publish('dataUpdated', this.getPoiData());
-			}
-		};
-
 		dmService.getDistanceMatrix({
 			origins: [fromDest],
-			destinations: [toDest],
+			destinations: markerPositions,
 			travelMode: 'DRIVING'
-		}, callback);
+		}, (response, status) => {
+			response.rows[0].elements.forEach((element, index) => {
+				let distanceInMiles = (element.distance.value / 1000).toFixed(1);
+				this._poiData[index].distance = distanceInMiles;
+			});
+
+			// 	console.log(this._poiData);
+			pubSub.publish('dataUpdated', this.getPoiData());
+		});
 
 	}
 
 	_sortData(poiData) {
+		// No point iterating if there is nothing to sort by
 		if (typeof(this._sortBy) == 'undefined') {
 			return poiData;
 		}
-
-		let sortedData = poiData.sort((a, b) => {
+		// Make sure slice is called on array so as not to mutate the original
+		// If the array is not copied it can cause havoc with async tasks later,
+		// such as adding distances.
+		let sortedData = poiData.slice(0).sort((a, b) => {
 			if (a[this._sortBy] < b[this._sortBy]) {
 				return -1;
 			}
@@ -111,6 +113,7 @@ class PoiData {
 			return 0;
 		});
 
+		console.log(this._poiData, sortedData);
 		return sortedData;
 	}
 
@@ -195,9 +198,11 @@ class PoiData {
 	}
 
 	addDistances(center) {
+		let markerPositions = [];
 		this._poiData.forEach((poi, index) => {
-			this._addDistances(poi, center, index);
+			markerPositions.push(poi.marker.getPosition());
 		});
+		this._addDistances(markerPositions, center);
 	}
 }
 

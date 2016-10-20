@@ -1,5 +1,6 @@
 @import 'reset';
 $background:  #acc6c8;
+$primary:  #acc6c8;
 
 html { font-family: 'Proza Libre', sans-serif; height: 100%;}
 
@@ -39,7 +40,7 @@ html, body {
 
 .main-container {
   background-color: $background;
-  height: 100%;
+  height: calc(100% - 70px);
 }
 
 .map-wrapper {
@@ -55,99 +56,126 @@ html, body {
   background-color: #DDD;
   margin-bottom: 30px;
   width: 100%;
+  position: relative;
   #map { width: 100%; height: 400px; }
 }
 
 /*-------------- Poi List --------------*/
 
 .pois {
-  float: left;
-  width: 70%;
+  float: right;
+  width: 100%;
+  height: 400px;
+
   h2 {
     font-weight: 700;
     margin-bottom: 15px;
   }
   &__list {
-    width: 100%;
+    // overflow-y: scroll;
+    width: 103%;
+    height: 100%;
     padding-left: 0;
+    margin-left: -3%;
   }
   .poi {
+    box-sizing: border-box;
     background-color: #FAFAFA;
     list-style: none;
-    width: 43%;
+    width: 30%;
     margin-bottom: 15px;
+    margin-left: 3%;
     display: inline-block;
     cursor: pointer;
-    padding: 10px;
+    padding: 10px 10px 10px 50px;
     box-shadow: 0px 2px 5px #AAA;
     border-radius: 3px;
     font-size: 14px;
     position: relative;
-    &:nth-child(odd) {
-      margin-right: 5%;
-    };
+    color: darken($background, 50%);
     &__title {
       margin-top: 0;
       margin-bottom: 10px;
       font-weight: 700;
     }
     &__icon {
-      position: absolute; top: 10px; right: 10px;
+      width: 20px;
+      margin: auto;
+      position: absolute; top: 0; bottom: 0; left: 10px;
     }
     &__rating { display: none; }
   }
 }
 
 /*-------------- Filter List --------------*/
-
 .filters {
-  box-sizing: border-box;
-  width: 30%;
-  display: inline-block;
-  margin-top: 33px;
-  padding: 12px;
-  border-radius: 5px;
-  width: 300px;
-  background-color: darken($background, 20%);
+  background-color: darken($primary, 20%);
+  border-radius: 3px;
   box-shadow: 0px 3px 7px #AAA;
+  height: 30px; width: 200px;
+  padding: 5px 10px;
+  position: absolute; top: 10px; left: -230px;
+  z-index: 1;
   h2 {
-    color: darken($background, 60%);
+    color: lighten($primary, 20%);
+    font-size: 1.2em;
+    font-weight: 100;
+    line-height: 1.7em;
+  }
+  &__expand {
+    background-color: lighten($primary, 5%);
+    border-radius: 2px;
+    color: darken($primary, 20%);
+    cursor: pointer;
+    display: block; height: 1em; width: 1em;
+    font-size: 1.6em;
+    font-weight: bold;
+    line-height: 1em;
+    position: absolute; right: 12px; top: 7px;
+    text-align: center;
+  }
+  &__list {
+    border-radius: 3px;
+    overflow: hidden;
+    position: absolute; left: 0; top: 125%;
+    width: 100%;
+  }
+  &__label {
+    display: block;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.7em;
+    padding: 12px 12px 11px 30px;
+    &:hover { cursor: pointer; }
+  }
+  &__icon {
+    margin: auto;
+    position: absolute; top: 0; bottom: 0; left: 10px;
   }
   &__item {
+    background-color: #FFF;
+    box-shadow: 0px 2px 3px #CCC;
+    color: #666;
+    margin-bottom: 1px;
     position: relative;
-    display: block;
-    margin-bottom: 3px;
-    background-color: lighten($background, 20%);
-    padding: 8px;
-    &:last-child { margin: 0; }
-    label {
-      display: block;
-      &:hover { cursor: pointer; }
+    input[type=checkbox] { display: none; }
+    input[type=checkbox] ~ label { background-color: #DDD; }
+    input[type=checkbox] ~ label:hover, input[type=checkbox]:checked ~ label:hover { background-color: lighten($primary, 20%); }
+    input[type=checkbox] ~ label:after {
+      color: #CCC;
+      content: "\f00c";
+      font-family: FontAwesome;
+      font-size: 1.6em;
+      position: absolute; top: 8px; bottom: 0; right: 10px;
     }
-    input[type=checkbox] {
-      display: none;
-      & ~ label:after {
-        box-sizing: border-box;
-        font-family: 'FontAwesome';
-        font-size: 1.2em;
-        background-color: #FFF;
-        content: "";
-        position: absolute;
-        padding-top: 2px;
-        height: 25px;
-        width: 25px;
-        right: 10px;
-        top: 4px;
-        border: 1px solid #AAA;
-        display: inline-block;
-        text-align: center;
-      }
-      &:checked ~ label:after {
-        content: "\f00c";
-        color: #4C7D4C;
-        background-color: #FFF;
-      }
-    }
+    input[type=checkbox]:checked ~ label { background-color: #FFF; }
+    input[type=checkbox]:checked ~ label:after { color: #007F00; }
+  }
+}
+
+@media screen and (max-width: 1520px) {
+  .filters {
+    left: 10px;
   }
 }
 

@@ -94,12 +94,12 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var PoiData = function () {
-	function PoiData(array) {
+	function PoiData(array, window) {
 		_classCallCheck(this, PoiData);
 
 		this._poiData = this._formatData(array);
 		this._filterList = [];
-		this._sortBy;
+		this._sortBy = 'type';
 		this._subscribers();
 	}
 
@@ -182,38 +182,40 @@ var PoiData = function () {
 		}
 	}, {
 		key: '_addDistances',
-		value: function _addDistances(poi, currentPos, index) {
+		value: function _addDistances(markerPositions, currentPos) {
 			var _this3 = this;
 
 			var fromDest = new google.maps.LatLng(currentPos);
-			var toDest = poi.marker.getPosition();
 			var distance = void 0;
 			var dmService = new google.maps.DistanceMatrixService();
 
-			var callback = function callback(response, status) {
-				var distanceInMiles = (response.rows[0].elements[0].distance.value / 1000).toFixed(1);
-				poi.distance = distanceInMiles;
-				if (index == _this3._poiData.length - 1) {
-					_PubSub2.default.publish('dataUpdated', _this3.getPoiData());
-				}
-			};
-
 			dmService.getDistanceMatrix({
 				origins: [fromDest],
-				destinations: [toDest],
+				destinations: markerPositions,
 				travelMode: 'DRIVING'
-			}, callback);
+			}, function (response, status) {
+				response.rows[0].elements.forEach(function (element, index) {
+					var distanceInMiles = (element.distance.value / 1000).toFixed(1);
+					_this3._poiData[index].distance = distanceInMiles;
+				});
+
+				// 	console.log(this._poiData);
+				_PubSub2.default.publish('dataUpdated', _this3.getPoiData());
+			});
 		}
 	}, {
 		key: '_sortData',
 		value: function _sortData(poiData) {
 			var _this4 = this;
 
+			// No point iterating if there is nothing to sort by
 			if (typeof this._sortBy == 'undefined') {
 				return poiData;
 			}
-
-			var sortedData = poiData.sort(function (a, b) {
+			// Make sure slice is called on array so as not to mutate the original
+			// If the array is not copied it can cause havoc with async tasks later,
+			// such as adding distances.
+			var sortedData = poiData.slice(0).sort(function (a, b) {
 				if (a[_this4._sortBy] < b[_this4._sortBy]) {
 					return -1;
 				}
@@ -223,6 +225,7 @@ var PoiData = function () {
 				return 0;
 			});
 
+			console.log(this._poiData, sortedData);
 			return sortedData;
 		}
 
@@ -325,11 +328,11 @@ var PoiData = function () {
 	}, {
 		key: 'addDistances',
 		value: function addDistances(center) {
-			var _this9 = this;
-
+			var markerPositions = [];
 			this._poiData.forEach(function (poi, index) {
-				_this9._addDistances(poi, center, index);
+				markerPositions.push(poi.marker.getPosition());
 			});
+			this._addDistances(markerPositions, center);
 		}
 	}]);
 
@@ -339,15 +342,31 @@ var PoiData = function () {
 exports.default = PoiData;
 
 },{"./PubSub":6}],3:[function(require,module,exports){
-"use strict";
+'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); /*
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  The PoiFilter object creates the DOM control for filtering and sorting the list of data.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  This object uses the data to create the filter controls, but never stores the data.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  Once the controls are initialised the only way to filter data is by publishing an event,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  the data is never manipulated. An event is fired and data is passed along for another
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  part of the app to handle the filtering process.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  Publishers:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *      filterToggled: Fired when one of the filter checkboxes is clicked.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *           Data sent: name of the filter that has been toggled.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *      sortToggled: Fired when the sort field is changed
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *           Data sent: name of the sort option that has been chosen.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     */
 
-var _PubSub = require("./PubSub");
+// Import the PubSub implementation
+
+
+var _PubSub = require('./PubSub');
 
 var _PubSub2 = _interopRequireDefault(_PubSub);
 
@@ -360,16 +379,22 @@ var PoiFilter = function () {
     _classCallCheck(this, PoiFilter);
 
     this._filterId = filterId;
-
     this._setFilterArray(poiData);
-    this._createFilterForm();
+    this._createFilterList();
     this._addFilterEventListeners();
   }
 
+  // Loop through the given data, find it's 'type' key and add all descrete
+  // values to an array, these will act as the values for the filters.
+
+
   _createClass(PoiFilter, [{
-    key: "_setFilterArray",
+    key: '_setFilterArray',
     value: function _setFilterArray(poiData) {
+      // Add the filter array to the object scope.
       this._filterArray = [];
+
+      // Use a temporary object to store distinct values as keys
       var temp = {};
 
       for (var i in poiData) {
@@ -379,19 +404,22 @@ var PoiFilter = function () {
         temp[poiData[i].type] = 0;
       }
     }
-  }, {
-    key: "_createFilterForm",
-    value: function _createFilterForm() {
-      var filterFormHTML = this._makeFilterFormHTML();
 
+    // Makes the list of filters and displays them in the DOM element
+    // given by the filterId parameter
+
+  }, {
+    key: '_createFilterList',
+    value: function _createFilterList() {
+      var filterFormHTML = this._makeFilterFormHTML();
       document.getElementById(this._filterId).innerHTML = filterFormHTML;
     }
   }, {
-    key: "_makeFilterFormHTML",
+    key: '_makeFilterFormHTML',
     value: function _makeFilterFormHTML() {
       var _this = this;
 
-      var HTML = "";
+      var HTML = '';
 
       this._filterArray.forEach(function (item, index) {
         HTML += _this._makeFilterItemHTML(item);
@@ -400,17 +428,25 @@ var PoiFilter = function () {
       return HTML;
     }
   }, {
-    key: "_makeFilterItemHTML",
+    key: '_makeFilterItemHTML',
     value: function _makeFilterItemHTML(item) {
+      var iconPath = "img/amenity_icons/" + item + "_icon_small.png";
+
       var HTML = '<li class="filters__item">';
+      HTML += '<img class="filters__icon" src="' + iconPath + '">';
       HTML += '<input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
-      HTML += '<label for="' + item + '">' + item + '</label>';
+      HTML += '<label class="filters__label" for="' + item + '">' + (item.charAt(0).toUpperCase() + item.slice(1)) + '</label>';
       HTML += '</li>';
 
       return HTML;
     }
+
+    // Fired after all set up is complete, adds event listers to the filter list checkboxes
+    // if one is clicked the value of that checkbox is published through the 'filterToggled'
+    // event in pubSub
+
   }, {
-    key: "_addFilterEventListeners",
+    key: '_addFilterEventListeners',
     value: function _addFilterEventListeners() {
       var checkboxes = document.getElementsByName('filter');
 
@@ -450,9 +486,12 @@ var PoiList = function () {
 
 		this._listId = listId;
 
-		this._updatePoiList(poiArray);
-
+		// Subscriptions to pubSub added before the update due to
+		// async events in data object. Need to update the list as
+		// soon as those events happen.
 		this._subscriptions();
+
+		this._updatePoiList(poiArray);
 	}
 
 	_createClass(PoiList, [{
@@ -491,7 +530,7 @@ var PoiList = function () {
 			HTML += '<h3 class="poi__title">' + title + '</h3>';
 
 			if (typeof poiDetail.distance != 'undefined') {
-				HTML += '<span class="poi__distance">' + poiDetail.distance + ' from you</span>';
+				HTML += '<span class="poi__distance">' + poiDetail.distance + 'km from you</span>';
 			}
 
 			HTML += '<span class="poi__rating">Rating: <span>' + rating + '</span></span>';
@@ -553,7 +592,7 @@ var PoiList = function () {
 exports.default = PoiList;
 
 },{"./PubSub":6}],5:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
 	value: true
@@ -561,7 +600,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _PubSub = require('./PubSub');
+var _PubSub = require("./PubSub");
 
 var _PubSub2 = _interopRequireDefault(_PubSub);
 
@@ -594,20 +633,21 @@ var PoiMap = function () {
 
 
 	_createClass(PoiMap, [{
-		key: '_createMap',
+		key: "_createMap",
 		value: function _createMap() {
 			var mapDiv = document.getElementById(this._mapId);
 
 			var map = new google.maps.Map(mapDiv, {
 				center: this._mainLocation,
 				scrollwheel: false,
-				zoom: 15
+				zoom: 15,
+				styles: [{ "featureType": "administrative", "elementType": "labels.text.fill", "stylers": [{ "color": "#444444" }] }, { "featureType": "landscape", "elementType": "all", "stylers": [{ "color": "#f2f2f2" }] }, { "featureType": "poi", "elementType": "all", "stylers": [{ "visibility": "off" }] }, { "featureType": "poi.business", "elementType": "geometry.fill", "stylers": [{ "visibility": "on" }] }, { "featureType": "road", "elementType": "all", "stylers": [{ "saturation": -100 }, { "lightness": 45 }] }, { "featureType": "road.highway", "elementType": "all", "stylers": [{ "visibility": "simplified" }] }, { "featureType": "road.arterial", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] }, { "featureType": "transit", "elementType": "all", "stylers": [{ "visibility": "off" }] }, { "featureType": "water", "elementType": "all", "stylers": [{ "color": "#b4d4e1" }, { "visibility": "on" }] }]
 			});
 
 			return map;
 		}
 	}, {
-		key: '_createMarker',
+		key: "_createMarker",
 		value: function _createMarker(position, map) {
 			return new google.maps.Marker({
 				position: position,
@@ -615,7 +655,7 @@ var PoiMap = function () {
 			});
 		}
 	}, {
-		key: '_validateMapData',
+		key: "_validateMapData",
 		value: function _validateMapData(id, center) {
 			if (id) {
 				if (typeof id !== 'string') {
@@ -649,7 +689,7 @@ var PoiMap = function () {
 			return true;
 		}
 	}, {
-		key: '_setBounds',
+		key: "_setBounds",
 		value: function _setBounds(poiData) {
 			this._bounds = new google.maps.LatLngBounds();
 
@@ -664,19 +704,19 @@ var PoiMap = function () {
 		// Initiates the bounds of the markers in an array
 
 	}, {
-		key: '_fitBounds',
+		key: "_fitBounds",
 		value: function _fitBounds() {
 			this._theMap.fitBounds(this._bounds);
 		}
 	}, {
-		key: '_createInfoWindow',
+		key: "_createInfoWindow",
 		value: function _createInfoWindow() {
 			this._infoWindow = new google.maps.InfoWindow({
 				maxWidth: 400
 			});
 		}
 	}, {
-		key: '_onDestroyInfoWindow',
+		key: "_onDestroyInfoWindow",
 		value: function _onDestroyInfoWindow() {
 			var _this = this;
 
@@ -688,7 +728,7 @@ var PoiMap = function () {
 		// Applys the map's infoWindow to the marker of the point of interest given
 
 	}, {
-		key: '_setInfoWindow',
+		key: "_setInfoWindow",
 		value: function _setInfoWindow(poi) {
 			var contentString = this._composeInfoWindowString(poi);
 
@@ -697,12 +737,12 @@ var PoiMap = function () {
 			this._theMap.panTo(poi.marker.getPosition());
 		}
 	}, {
-		key: '_composeInfoWindowString',
+		key: "_composeInfoWindowString",
 		value: function _composeInfoWindowString(poi) {
 			var HTMLString;
 			HTMLString = '<div id="maps-window">';
 			HTMLString += '<h3>' + poi.name + '</h3>';
-			HTMLString += '<a href="' + poi.website_url + '">' + poi.website_url + '</a>';
+			HTMLString += '<a href="' + poi.website_url + '">Go to website</a>';
 			HTMLString += '<p>' + poi.description + '</p>';
 			HTMLString += '</div>';
 
@@ -713,7 +753,7 @@ var PoiMap = function () {
 		// Contains all pubSub subscriptions
 
 	}, {
-		key: '_subscriptions',
+		key: "_subscriptions",
 		value: function _subscriptions() {
 			var _this2 = this;
 
@@ -735,7 +775,7 @@ var PoiMap = function () {
 		// Update interface called when subscribed to a subject
 
 	}, {
-		key: 'updatePoiMarkers',
+		key: "updatePoiMarkers",
 		value: function updatePoiMarkers(poiData) {
 			var _this3 = this;
 
@@ -748,7 +788,7 @@ var PoiMap = function () {
 			this._setBounds(pois);
 		}
 	}, {
-		key: 'initialiseInfoWindow',
+		key: "initialiseInfoWindow",
 		value: function initialiseInfoWindow() {
 			this._createInfoWindow();
 			this._onDestroyInfoWindow();
@@ -871,55 +911,199 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 var places = [{
-	"name": "Supermercados Coviran",
-	"type": "supermarket",
-	"description": "A supermarket offering all your grocery needs",
-	"website_url": "http://www.supermarket.com",
+	"name": "Cabot Circus",
+	"type": "shopping",
+	"description": "Bristol&apos;s Cabot Circus offers the ultimate shopping experience, bringing together a host of high-street and designer brands and confirming the city&apos;s status as the South West&apos;s style capital. With more than 120 stores stocking the latest trends, Cabot Circus has something for every taste, including a four-storey flagship House of Fraser offering clothing, beauty and homewares.",
+	"website_url": "https://www.cabotcircus.com/",
 	"coords": {
-		"lat": 28.05249,
-		"lng": -16.71548
+		"lat": 51.458481,
+		"lng": -2.5852458
 	}
 }, {
-	"name": "Mercadona",
-	"type": "supermarket",
-	"description": "Tenerife&apos;s biggest supermarket",
-	"website_url": "http://www.mercadona.com",
+	"name": "Bristol Bierkeller",
+	"type": "venue",
+	"description": "Do you like alternative music? Then welcome home! Student nights are held twice weekly with all the best alternative music.",
+	"website_url": "http://www.bristolbierkeller.co.uk/",
 	"coords": {
-		"lat": 28.05457,
-		"lng": -16.70861
+		"lat": 51.4559925,
+		"lng": -2.5925146
 	}
 }, {
-	"name": "O&apos;Neill&apos;s Bar",
+	"name": "Lakota",
+	"type": "venue",
+	"description": "Not for the faint hearted, or if you want to get any coursework done! Lakota is frequently open until the early hours and often offers after parties for local sound system festivals. They offer the bsolute best of Bristol&apos;s local music scene",
+	"website_url": "http://www.lakota.co.uk/",
+	"coords": {
+		"lat": 51.4616571,
+		"lng": -2.5895789
+	}
+}, {
+	"name": "The Canteen",
 	"type": "bar",
-	"description": "A lively Irish bar",
-	"website_url": "http://www.oneills.com",
+	"description": "One of the more chilled out venues on Stokes Croft, they serve excellent food during the day. In the evenings it is transformed into a lively bar with live performances and open mic nights.",
+	"website_url": "http://www.lakota.co.uk/",
 	"coords": {
-		"lat": 28.05600,
-		"lng": -16.72445
+		"lat": 51.4628076,
+		"lng": -2.5896245
 	}
 }, {
-	"name": "Taylor&apos;s Lounge",
+	"name": "King Street",
 	"type": "bar",
-	"description": "A cool bar and stuff",
-	"website_url": "http://www.taylors.com",
+	"description": "We can't just reccommend a few bars along King Street, go and try out a few! Craft beers and local ciders are itching to be tasted, a sure start to an awesome night.",
+	"website_url": "no website",
 	"coords": {
-		"lat": 28.05176,
-		"lng": -16.71619
+		"lat": 51.4516792,
+		"lng": -2.5948164
 	}
 }, {
-	"name": "Claddagh Irish Bar",
+	"name": "Za Za Bazaar",
 	"type": "restaurant",
-	"description": "Always a friendly atmosphere",
-	"website_url": "http://www.claddagh.com",
+	"description": "Ever wanted an all you can eat buffet encompassing foods from across the globe? Well, you've found it. Go mental, you only get 45 minutes to cram as much as you can in!",
+	"website_url": "http://www.zazabazaar.com/",
 	"coords": {
-		"lat": 28.05,
-		"lng": -16.7166667
+		"lat": 51.4503343,
+		"lng": -2.5984718
+	}
+}, {
+	"name": "Raj Bari",
+	"type": "restaurant",
+	"description": "Situated amidst the picture perfect harbourside area of Hotwells in Bristol, the extremely popular Raj Bari Indian Restaurant was established in 1991 and can actually trace its humble beginnings back to London in the 1950s.",
+	"website_url": "http://www.rajbaribristol.co.uk/",
+	"coords": {
+		"lat": 51.449712,
+		"lng": -2.6158884
+	}
+}, {
+	"name": "Siam Harbourside Thai Restaurant",
+	"type": "restaurant",
+	"description": "Here at the Siam Harbourside licensed restaurant we serve delicious authentic Thai food and drink and want to ensure that you capture all the flavours that Thai cuisine has to offer. Thai cuisine is distinctive thanks to the use of herbs and spices that will really tantalise your taste buds, taking you on a journey of culinary adventure.",
+	"website_url": "http://www.siam-harbourside.co.uk/",
+	"coords": {
+		"lat": 51.449361,
+		"lng": -2.613297
+	}
+}, {
+	"name": "The Blue Lagoon",
+	"type": "bar",
+	"description": "We’re a smart Cafe Bar & Live Music venue on the vibrant Gloucester Road and our focus is on excellent food, drink and music but above all the service and value for money we provide. The Blue Lagoon is a family owned business which we believe reflects in the way we operate – providing a family friendly atmosphere and specially designed children’s menus and high chairs for your convenience.",
+	"website_url": "http://www.thebluelagooncafebar.com/",
+	"coords": {
+		"lat": 51.4714083,
+		"lng": -2.5929919
+	}
+}, {
+	"name": "The Attic Bar",
+	"type": "venue",
+	"description": "The Attic Bar is one of Bristol's long-standing and most popular venues in the heart of the cultural hub that is Stokes Croft, fully equipped with an excellent Opus soundsystem and stage lighting - you can find quality gigs of all styles of music every weekend! We host local and internationally renowned Bands and DJs throughout the year and it's also a perfect venue for private parties and events.",
+	"website_url": "http://www.fmbristol.co.uk/attic-bar",
+	"coords": {
+		"lat": 51.4602141,
+		"lng": -2.5904667
+	}
+}, {
+	"name": "Victoria Park",
+	"type": "park",
+	"description": "Large Victorian park with children’s play area and grassy space.",
+	"website_url": "https://www.bristol.gov.uk/museums-parks-sports-culture/victoria-park",
+	"coords": {
+		"lat": 51.4405213,
+		"lng": -2.5865543
+	}
+}, {
+	"name": "Bristol Museum & Art Gallery",
+	"type": "culture",
+	"description": "Explore our collections of art, nature and history on display in this beautiful building. Find out about the last billion years of Earth’s history, explore the region’s natural wonders and discover more about peoples’ lives, past and present. Entry to the Museum is free",
+	"website_url": "https://www.bristolmuseums.org.uk/bristol-museum-and-art-gallery/",
+	"coords": {
+		"lat": 51.456100,
+		"lng": -2.605300
+	}
+}, {
+	"name": "The Ivy Clifton Brasserie",
+	"type": "restaurant",
+	"description": "The Ivy Clifton Brasserie is now open in the heart of Clifton Village, Bristol, located on the corner of Caledonia Place and The Mall, overlooking The Mall Gardens.",
+	"website_url": "http://theivycliftonbrasserie.com/",
+	"coords": {
+		"lat": 51.4549,
+		"lng": -2.6209
+	}
+}, {
+	"name": "The Fleece",
+	"type": "venue",
+	"description": "Legendary live music venue established in 1982, previously hosting the likes of Oasis, Radiohead, Queens of the Stone Age and White Stripes to name a few!",
+	"website_url": "http://thefleece.co.uk/",
+	"coords": {
+		"lat": 51.452281,
+		"lng": -2.589517
+	}
+}, {
+	"name": "Bristol Royal Infirmary",
+	"type": "medical",
+	"description": "Ever wanted an all you can eat buffet encompassing foods from across the globe? Well, you've found it. Go mental, you only get 45 minutes to cram as much as you can in!",
+	"website_url": "http://www.uhbristol.nhs.uk/",
+	"coords": {
+		"lat": 51.45849,
+		"lng": -2.596603
+	}
+}, {
+	"name": "Bristol Temple Meads",
+	"type": "Transport",
+	"description": "Bristol Temple Meads railway station is the oldest and largest railway station in Bristol. It is an important transport hub for public transport, with bus services to many parts of the city and surrounding districts and a ferry to the city centre in addition to the train services",
+	"website_url": "http://www.nationalrail.co.uk/stations/BRI/details.html",
+	"coords": {
+		"lat": 51.449000,
+		"lng": -2.580000
+	}
+}, {
+	"name": "Bristol Hippodrome",
+	"type": "venue",
+	"description": "Experience a variety of shows straight from the West End from musicals to comedy and circus shows.",
+	"website_url": " http://www.atgtickets.com/venues/bristol-hippodrome/",
+	"coords": {
+		"lat": 51.4531883,
+		"lng": -2.6003972
+	}
+}, {
+	"name": "Clifton Suspension Bridge",
+	"type": "culture",
+	"description": "The Clifton Suspension Bridge, spanning the picturesque Avon Gorge, is the symbol of the city of Bristol. For almost 150 years this Grade I listed structure has attracted visitors from all over the world.",
+	"website_url": "http://www.cliftonbridge.org.uk/",
+	"coords": {
+		"lat": 51.4544538,
+		"lng": -2.6311839
+	}
+}, {
+	"name": "Bristol Zoo",
+	"type": "entertainment",
+	"description": "Bristol Zoo Gardens maintains and defends biodiversity through breeding endangered species, conserving threatened species and habitats and promoting a wider understanding of the natural world",
+	"website_url": "http://www.bristolzoo.org.uk/",
+	"coords": {
+		"lat": 51.4637461,
+		"lng": -2.6246435
+	}
+}, {
+	"name": "Water Sky",
+	"type": "restaurant",
+	"description": "Water Sky accommodates over 400 diners in extravagant surrounding, serving exceptional, authentic Chinese food. Why not drop by and enjoy an exquisite dining experience in what promises to be one of Bristol’s finest Chinese restaurants?",
+	"website_url": "http://www.watersky-bristol.com",
+	"coords": {
+		"lat": 51.47295,
+		"lng": -2.5713694
+	}
+}, {
+	"name": "Showcase Cinema De Lux",
+	"type": "entertainment",
+	"description": "Modern multiscreen cinema with digital projection and sound equipment, plus a custom party service.",
+	"website_url": "http://www.showcasecinemas.co.uk/locations/bristol",
+	"coords": {
+		"lat": 51.4590247,
+		"lng": -2.5878965
 	}
 }];
 
 var mainMarker = {
-	"lat": 28.050615,
-	"lng": -16.71212
+	"lat": 51.4573078,
+	"lng": -2.5840724
 };
 
 exports.places = places;

@@ -5,6 +5,7 @@
 	<title>MapsApp</title>
 	<link href="https://fonts.googleapis.com/css?family=Proza+Libre" rel="stylesheet">
 	<script src="https://use.fontawesome.com/d6a674cd9a.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.19.0/TweenMax.min.js"></script>
 	<link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -16,6 +17,12 @@
 	<div class="main-container">
 		<div class="map-wrapper">
 			<div class="container map-container">
+				<div class="filters">
+					<h2>Filter</h2>
+					<span class="filters__expand" id="js-expand">-</span>
+					<ul class="filters__list" id="js-filter-controls">
+					</ul>
+				</div>
 				<div id="map"></div>
 			</div>
 		</div>
@@ -27,16 +34,31 @@
 				</ul>
 			</div>
 
-			<div class="filters">
-				<h2>Filter</h2>
-				<ul class="filters__list" id="js-filter-controls">
-				</ul>
-			</div>
-
 		</div>
 	</div>
 
 	<script src="https://maps.googleapis.com/maps/api/js"></script>
 	<script src="js/maps_app.min.js"></script>
+	<script>
+	var button = document.getElementById('js-expand');
+	var listContainer = document.getElementsByClassName('filters__list')[0];
+	var listItems = document.getElementsByClassName('filters__item');
+
+	TweenMax.to(listContainer, 0, { display: "none" });
+	TweenMax.to(listItems, 0, { left: "-330px" });
+
+	button.onclick = function() {
+		if (listContainer.style.display === "none") {
+
+			TweenMax.to(listContainer, 0, { display: "block" });
+			TweenMax.staggerTo(listItems, 0.4, {left: "0", ease: Power4.easeOut}, 0.1);
+
+		} else {
+
+			TweenMax.staggerTo(listItems, 0.4, {left: "-330px", ease: Power4.easeOut}, -0.05);
+			TweenMax.to(listContainer, 0, { delay: 0.4, display: "none" });
+		}
+	};
+</script>
 </body>
 </html>

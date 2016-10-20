@@ -4,9 +4,12 @@ class PoiList {
 	constructor(listId, poiArray) {
 		this._listId = listId;
 
-		this._updatePoiList(poiArray);
-
+		// Subscriptions to pubSub added before the update due to
+		// async events in data object. Need to update the list as
+		// soon as those events happen.
 		this._subscriptions();
+
+		this._updatePoiList(poiArray);
 	}
 
 	_updatePoiList(poiArray) {
@@ -39,7 +42,7 @@ class PoiList {
 		HTML += '<h3 class="poi__title">' + title + '</h3>';
 
 		if (typeof(poiDetail.distance) != 'undefined') {
-				HTML += '<span class="poi__distance">' + poiDetail.distance + ' from you</span>';
+				HTML += '<span class="poi__distance">' + poiDetail.distance + 'km from you</span>';
 		}
 
 		HTML += '<span class="poi__rating">Rating: <span>' + rating + '</span></span>';
