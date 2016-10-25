@@ -151,7 +151,7 @@ const places = [
 	},
 	{
 		"name": "Bristol Temple Meads",
-		"type": "Transport",
+		"type": "transport",
 		"description": "Bristol Temple Meads railway station is the oldest and largest railway station in Bristol. It is an important transport hub for public transport, with bus services to many parts of the city and surrounding districts and a ferry to the city centre in addition to the train services",
 		"website_url": "http://www.nationalrail.co.uk/stations/BRI/details.html",
 		"coords": {
@@ -207,6 +207,16 @@ const places = [
 		"coords": {
 		  "lat": 51.4590247,
 		  "lng": -2.5878965
+		}
+	},
+	{
+		"name": "Latcham",
+		"type": "entertainment",
+		"description": "",
+		"website_url": "http://www.latchamdirect.co.uk",
+		"coords": {
+		  "lat": 51.4179959,
+		  "lng": -2.5847738
 		}
 	}
 ];

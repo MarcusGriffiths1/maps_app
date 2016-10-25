@@ -141,7 +141,7 @@ class PoiMap {
 
 	// Update interface called when subscribed to a subject
 	updatePoiMarkers(poiData) {
-		let pois = poiData;
+		let pois = poiData.data;
 
 		pois.forEach((item, index) => {
 			item.marker.setMap(this._theMap);

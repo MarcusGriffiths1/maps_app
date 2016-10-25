@@ -88,7 +88,7 @@ class PoiData {
 				let distanceInMiles = (element.distance.value / 1000).toFixed(1);
 				array[index].distance = distanceInMiles;
 			});
-			
+
 			pubSub.publish('dataUpdated', this.getPoiData());
 		});
 
@@ -112,7 +112,6 @@ class PoiData {
 			return 0;
 		});
 
-		console.log(this._poiData, sortedData);
 		return sortedData;
 	}
 
@@ -120,17 +119,19 @@ class PoiData {
 	// which causes problems when feeding parameters to the function (it gets called immediately).
 	// Currying to the rescue, this function is partially applied so needs to be
 	// .call()-ed when used outside of an event listener.
-	_makeIcon(marker, type, zoom, anchor) {
+	_makeIcon(marker, type, zoom, zIndex=0, anchor) {
 		return (() => {
-			var iconImg = zoom ? this._customMarkersSettings.zoom : this._customMarkersSettings.icon;
+			let iconPath = this._customMarkersSettings.path;
+			let iconImg = zoom ? this._customMarkersSettings.zoom : this._customMarkersSettings.icon;
 
-			var icon = {
-				url: this._customMarkersSettings.path + type + iconImg + '.png',
+			let icon = {
+				url: iconPath + type + iconImg + '.png',
 				origin: new google.maps.Point(0, 0),
 				anchor: anchor
 			};
 
 			marker.setIcon(icon);
+			marker.setZIndex(zIndex);
 		});
 	}
 
@@ -144,7 +145,7 @@ class PoiData {
 			this._makeIcon(marker, type, false).call();
 
 			if (this._customMarkersSettings.zoom) {
-				marker.addListener('mouseover', this._makeIcon(marker, type, true, new google.maps.Point(14, 20)));
+				marker.addListener('mouseover', this._makeIcon(marker, type, true, 100, new google.maps.Point(14, 20)));
 				marker.addListener('mouseout', this._makeIcon(marker, type, false));
 			}
 		});
@@ -154,7 +155,7 @@ class PoiData {
 		pubSub.subscribe('listItemMouseOver', (topic, poi) => {
 			let type = poi.type;
 			let marker = poi.marker;
-			this._makeIcon(marker, type, true, new google.maps.Point(14, 20)).call();
+			this._makeIcon(marker, type, true, 100, new google.maps.Point(14, 20)).call();
 		});
 
 		pubSub.subscribe('listItemMouseOut', (topic, poi) => {
@@ -166,8 +167,12 @@ class PoiData {
 
 	_subscribers() {
 		pubSub.subscribe('filterToggled', (topic, value) => {
-			console.log(value);
 			this._toggleFilter(value);
+		});
+
+		pubSub.subscribe('sortToggled', (topic, value) => {
+			this._sortBy = value;
+			pubSub.publish('dataUpdated', this.getPoiData(false));
 		});
 	}
 
@@ -179,7 +184,13 @@ class PoiData {
 		}
 		let filteredData = this._filterData();
 		let sortedData = this._sortData(filteredData);
-		return sortedData;
+
+		let data = {
+			data: sortedData,
+			sortedBy: this._sortBy
+		};
+
+		return data;
 	}
 
 	addMarkerClickEvents() {

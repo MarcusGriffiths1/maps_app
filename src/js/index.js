@@ -13,6 +13,6 @@ const options = {
 };
 
 var myMap = new MapsApp('map', mainMarker, places, options);
-
 myMap.createList('js-amenity-list');
 myMap.createFilter('js-filter-controls');
+myMap.createSorter('js-sort-list');

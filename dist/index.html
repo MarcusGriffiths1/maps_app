@@ -21,7 +21,7 @@
 			<div class="container map-container">
 				<div class="filters">
 					<h2>Filter</h2>
-					<span class="filters__expand" id="js-expand">-</span>
+					<span class="filters__expand" id="js-expand">+</span>
 					<ul class="filters__list" id="js-filter-controls">
 					</ul>
 				</div>
@@ -32,6 +32,9 @@
 
 			<div class="pois">
 				<h2>Places to Go</h2>
+				<div class="sort">
+					Sort by: <select id="js-sort-list"></select>
+				</div>
 				<ul class="pois__list" id="js-amenity-list">
 				</ul>
 			</div>
@@ -56,12 +59,12 @@
 
 	button.onclick = function() {
 		if (listContainer.style.display === "none") {
-
+			button.innerText = "-";
 			TweenMax.to(listContainer, 0, { display: "block" });
 			TweenMax.staggerTo(listItems, 0.4, {left: "0", ease: Power4.easeOut}, 0.1);
 
 		} else {
-
+			button.innerText = "+";
 			TweenMax.staggerTo(listItems, 0.4, {left: "-330px", ease: Power4.easeOut}, -0.05);
 			TweenMax.to(listContainer, 0, { delay: 0.4, display: "none" });
 		}

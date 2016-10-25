@@ -19,7 +19,10 @@ import pubSub from './PubSub';
 class PoiFilter {
   constructor(filterId, poiData) {
     this._filterId = filterId;
+
+    // Create an array of distinct filters
     this._setFilterArray(poiData);
+    // Create list HTML and populate given DOM element
     this._createFilterList();
     this._addFilterEventListeners();
   }
@@ -33,11 +36,11 @@ class PoiFilter {
     // Use a temporary object to store distinct values as keys
     let temp = {};
 
-    for (var i in poiData) {
-      if (typeof(temp[poiData[i].type]) == "undefined") {
-        this._filterArray.push(poiData[i].type);
+    for (var i in poiData.data) {
+      if (typeof(temp[poiData.data[i].type]) == "undefined") {
+        this._filterArray.push(poiData.data[i].type);
       }
-      temp[poiData[i].type] = 0;
+      temp[poiData.data[i].type] = 0;
     }
   }
 
@@ -70,6 +73,20 @@ class PoiFilter {
     return HTML;
   }
 
+  _createSorterList(wrapperElement, sorterArray) {
+    let sorterListHTML = this._makeSorterHTML(sorterArray);
+    wrapperElement.innerHTML = sorterListHTML;
+  }
+
+  _makeSorterHTML(sorterArray) {
+    let HTML = '';
+
+    sorterArray.forEach((item, index) => {
+      HTML += '<option value="' + item + '" >' + item + '</option>';
+    });
+
+    return HTML;
+  }
   // Fired after all set up is complete, adds event listers to the filter list checkboxes
   // if one is clicked the value of that checkbox is published through the 'filterToggled'
   // event in pubSub
@@ -82,6 +99,21 @@ class PoiFilter {
       });
     });
   };
+
+  _addSorterEventListeners(sorterElement) {
+    sorterElement.addEventListener('change', (e) => {
+      pubSub.publish('sortToggled', e.target[e.target.selectedIndex].value);
+    });
+  }
+
+  // ---------- PUBLIC INTERFACE ----------
+
+  createSorter(sorterId, sortByArray) {
+    this._sorterId = sorterId;
+    let sorterElement = document.getElementById(this._sorterId);
+    this._createSorterList(sorterElement, sortByArray);
+    this._addSorterEventListeners(sorterElement);
+  }
 
 }
 

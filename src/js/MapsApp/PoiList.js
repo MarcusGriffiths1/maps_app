@@ -1,7 +1,7 @@
 import pubSub from './PubSub';
 
 class PoiList {
-	constructor(listId, poiArray) {
+	constructor(listId, poiData) {
 		this._listId = listId;
 
 		// Subscriptions to pubSub added before the update due to
@@ -9,25 +9,53 @@ class PoiList {
 		// soon as those events happen.
 		this._subscriptions();
 
-		this._updatePoiList(poiArray);
+		this._updatePoiList(poiData);
 	}
 
-	_updatePoiList(poiArray) {
+	_updatePoiList(poiData) {
 		document.getElementById(this._listId).innerHTML = "";
-		let listHTML = this._makeListHTML(poiArray);
+		let listHTML = this._createListHTML(poiData);
 		document.getElementById(this._listId).innerHTML = listHTML;
 
-		this._addListEventListeners(poiArray);
+		this._addListEventListeners(poiData);
 	}
 
-	_makeListHTML(poiArray) {
+	_createListHTML(poiData) {
+		let HTML;
+
+		if (poiData.sortedBy === "type") {
+			HTML = this._makeTitledListHTML(poiData);
+		} else {
+			HTML = this._makeListHTML(poiData);
+		}
+
+		return HTML;
+	}
+
+	_makeTitledListHTML(poiData) {
+		let titleData = this._makeDistinctArray(poiData.data);
 		let HTML = '';
 
-		poiArray.forEach((poiDetail, index) => {
+		titleData.forEach((title, index) => {
+			HTML += '<li><ul>';
+			HTML += '<h3 class="pois__title">' + title + '</h3>';
+			poiData.data.forEach((poi, index) => {
+				if (poi.type === title) {
+					HTML += this._makeListItemHTML(poi);
+				}
+			});
+		});
+
+		return HTML;
+	}
+
+	_makeListHTML(poiData) {
+		let HTML = '';
+		console.log(poiData);
+		poiData.data.forEach((poiDetail, index) => {
 			HTML += this._makeListItemHTML(poiDetail);
 		});
 
-		HTML += '';
 		return HTML;
 	}
 
@@ -39,7 +67,7 @@ class PoiList {
 
 		let HTML = '<li class="poi" data-key="' + poiDetail.key + '">';
 		HTML += '<img class="poi__icon" src="' + iconPath + '">';
-		HTML += '<h3 class="poi__title">' + title + '</h3>';
+		HTML += '<h4 class="poi__title">' + title + '</h4>';
 
 		if (typeof(poiDetail.distance) != 'undefined') {
 				HTML += '<span class="poi__distance">' + poiDetail.distance + 'km from you</span>';
@@ -51,32 +79,54 @@ class PoiList {
 		return HTML;
 	}
 
-	_addListEventListeners(poiArray) {
+	_addListEventListeners(poiData) {
 		//TODO: refactor
-		let domList = document.getElementById(this._listId).getElementsByTagName('li');
+
+		// Must obtain lis by class name in case the lists are nested
+		let domList = document.getElementById(this._listId).getElementsByClassName('poi');
 
 		[].forEach.call(domList, (item, index) => {
-			let key = item.getAttribute('data-key');
-			let poi;
 
-			for (let i = 0; i < poiArray.length; i++) {
-				if (poiArray[i].key == key.toString()) {
-					poi = poiArray[i];
+				let key = item.getAttribute('data-key');
+				let poi;
+
+				for (let i = 0; i < poiData.data.length; i++) {
+					if (poiData.data[i].key == key.toString()) {
+						poi = poiData.data[i];
+					}
 				}
-			}
 
-			item.addEventListener('mouseover', () => {
-				pubSub.publish('listItemMouseOver', poi);
-			});
+				item.addEventListener('mouseover', () => {
+					pubSub.publish('listItemMouseOver', poi);
+				});
 
-			item.addEventListener('mouseleave', () => {
-				pubSub.publish('listItemMouseOut', poi);
-			});
+				item.addEventListener('mouseleave', () => {
+					pubSub.publish('listItemMouseOut', poi);
+				});
 
-			item.addEventListener('click', () => {
-				pubSub.publish('markerClicked', poi);
-			});
+				item.addEventListener('click', () => {
+					pubSub.publish('markerClicked', poi);
+				});
+			// }
+
 		});
+	}
+
+	_makeDistinctArray(poiData) {
+		// Add the filter array to the object scope.
+		let distinctArray = [];
+
+		// Use a temporary object to store distinct values as keys
+		let temp = {};
+
+		for (var i in poiData) {
+			if (typeof(temp[poiData[i].type]) == "undefined") {
+				distinctArray.push(poiData[i].type);
+			}
+			temp[poiData[i].type] = 0;
+		}
+
+		return distinctArray;
 	}
 
 	// --------------- PUBSUB INTERFACE ----------------------

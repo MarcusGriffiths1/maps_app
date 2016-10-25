@@ -5,7 +5,14 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); /*
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  This is the central hub of the application. When a user instantiates this class
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  the supplied data is fed into a data store object and a new map is defined.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  Any custom options are then processed on the map and the data.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  Public methods are provided to create a list, filter and sort component for
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  more powerful interactivity.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     */
 
 var _PoiFilter = require('./PoiFilter');
 
@@ -40,7 +47,7 @@ var MapsApp = function () {
 		this._theData = new _PoiData2.default(poiDetailsArray);
 		this._theMap = new _PoiMap2.default(mapId, this._center, this._theData.getPoiData());
 
-		// Setup any optional extras
+		// Setup any optional extras on the data and the map
 		this._options = options;
 
 		if (this._options.infoWindow === true) {
@@ -59,15 +66,32 @@ var MapsApp = function () {
 
 	// --------------- PUBLIC INTERFACE ----------------------
 
+	// Populates a specified DOM element with data from the data store
+	// and creates interactivity with the map through pubSub.
+
+
 	_createClass(MapsApp, [{
 		key: 'createList',
 		value: function createList(listId) {
 			this._theList = new _PoiList2.default(listId, this._theData.getPoiData());
 		}
+
+		// Populates a specified DOM element with a list of clickable filters
+		// based on the data in the data store.
+
 	}, {
 		key: 'createFilter',
-		value: function createFilter(filterId) {
+		value: function createFilter(filterId, sortId) {
 			this._theFilter = new _PoiFilter2.default(filterId, this._theData.getPoiData());
+		}
+
+		// SorterId should point towards an empty select element
+		// Provides ability to sort by any specified field of the data
+
+	}, {
+		key: 'createSorter',
+		value: function createSorter(sorterId) {
+			this._theFilter.createSorter(sorterId, this._options.sortBy);
 		}
 	}]);
 
@@ -224,7 +248,6 @@ var PoiData = function () {
 				return 0;
 			});
 
-			console.log(this._poiData, sortedData);
 			return sortedData;
 		}
 
@@ -235,19 +258,24 @@ var PoiData = function () {
 
 	}, {
 		key: '_makeIcon',
-		value: function _makeIcon(marker, type, zoom, anchor) {
+		value: function _makeIcon(marker, type, zoom) {
 			var _this5 = this;
 
+			var zIndex = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
+			var anchor = arguments[4];
+
 			return function () {
+				var iconPath = _this5._customMarkersSettings.path;
 				var iconImg = zoom ? _this5._customMarkersSettings.zoom : _this5._customMarkersSettings.icon;
 
 				var icon = {
-					url: _this5._customMarkersSettings.path + type + iconImg + '.png',
+					url: iconPath + type + iconImg + '.png',
 					origin: new google.maps.Point(0, 0),
 					anchor: anchor
 				};
 
 				marker.setIcon(icon);
+				marker.setZIndex(zIndex);
 			};
 		}
 	}, {
@@ -263,7 +291,7 @@ var PoiData = function () {
 				_this6._makeIcon(marker, type, false).call();
 
 				if (_this6._customMarkersSettings.zoom) {
-					marker.addListener('mouseover', _this6._makeIcon(marker, type, true, new google.maps.Point(14, 20)));
+					marker.addListener('mouseover', _this6._makeIcon(marker, type, true, 100, new google.maps.Point(14, 20)));
 					marker.addListener('mouseout', _this6._makeIcon(marker, type, false));
 				}
 			});
@@ -276,7 +304,7 @@ var PoiData = function () {
 			_PubSub2.default.subscribe('listItemMouseOver', function (topic, poi) {
 				var type = poi.type;
 				var marker = poi.marker;
-				_this7._makeIcon(marker, type, true, new google.maps.Point(14, 20)).call();
+				_this7._makeIcon(marker, type, true, 100, new google.maps.Point(14, 20)).call();
 			});
 
 			_PubSub2.default.subscribe('listItemMouseOut', function (topic, poi) {
@@ -291,8 +319,12 @@ var PoiData = function () {
 			var _this8 = this;
 
 			_PubSub2.default.subscribe('filterToggled', function (topic, value) {
-				console.log(value);
 				_this8._toggleFilter(value);
+			});
+
+			_PubSub2.default.subscribe('sortToggled', function (topic, value) {
+				_this8._sortBy = value;
+				_PubSub2.default.publish('dataUpdated', _this8.getPoiData(false));
 			});
 		}
 
@@ -306,7 +338,13 @@ var PoiData = function () {
 			}
 			var filteredData = this._filterData();
 			var sortedData = this._sortData(filteredData);
-			return sortedData;
+
+			var data = {
+				data: sortedData,
+				sortedBy: this._sortBy
+			};
+
+			return data;
 		}
 	}, {
 		key: 'addMarkerClickEvents',
@@ -377,7 +415,10 @@ var PoiFilter = function () {
     _classCallCheck(this, PoiFilter);
 
     this._filterId = filterId;
+
+    // Create an array of distinct filters
     this._setFilterArray(poiData);
+    // Create list HTML and populate given DOM element
     this._createFilterList();
     this._addFilterEventListeners();
   }
@@ -395,11 +436,11 @@ var PoiFilter = function () {
       // Use a temporary object to store distinct values as keys
       var temp = {};
 
-      for (var i in poiData) {
-        if (typeof temp[poiData[i].type] == "undefined") {
-          this._filterArray.push(poiData[i].type);
+      for (var i in poiData.data) {
+        if (typeof temp[poiData.data[i].type] == "undefined") {
+          this._filterArray.push(poiData.data[i].type);
         }
-        temp[poiData[i].type] = 0;
+        temp[poiData.data[i].type] = 0;
       }
     }
 
@@ -438,7 +479,23 @@ var PoiFilter = function () {
 
       return HTML;
     }
+  }, {
+    key: '_createSorterList',
+    value: function _createSorterList(wrapperElement, sorterArray) {
+      var sorterListHTML = this._makeSorterHTML(sorterArray);
+      wrapperElement.innerHTML = sorterListHTML;
+    }
+  }, {
+    key: '_makeSorterHTML',
+    value: function _makeSorterHTML(sorterArray) {
+      var HTML = '';
 
+      sorterArray.forEach(function (item, index) {
+        HTML += '<option value="' + item + '" >' + item + '</option>';
+      });
+
+      return HTML;
+    }
     // Fired after all set up is complete, adds event listers to the filter list checkboxes
     // if one is clicked the value of that checkbox is published through the 'filterToggled'
     // event in pubSub
@@ -454,6 +511,24 @@ var PoiFilter = function () {
         });
       });
     }
+  }, {
+    key: '_addSorterEventListeners',
+    value: function _addSorterEventListeners(sorterElement) {
+      sorterElement.addEventListener('change', function (e) {
+        _PubSub2.default.publish('sortToggled', e.target[e.target.selectedIndex].value);
+      });
+    }
+
+    // ---------- PUBLIC INTERFACE ----------
+
+  }, {
+    key: 'createSorter',
+    value: function createSorter(sorterId, sortByArray) {
+      this._sorterId = sorterId;
+      var sorterElement = document.getElementById(this._sorterId);
+      this._createSorterList(sorterElement, sortByArray);
+      this._addSorterEventListeners(sorterElement);
+    }
   }]);
 
   return PoiFilter;
@@ -462,7 +537,7 @@ var PoiFilter = function () {
 exports.default = PoiFilter;
 
 },{"./PubSub":6}],4:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
 	value: true
@@ -470,7 +545,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _PubSub = require('./PubSub');
+var _PubSub = require("./PubSub");
 
 var _PubSub2 = _interopRequireDefault(_PubSub);
 
@@ -479,7 +554,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var PoiList = function () {
-	function PoiList(listId, poiArray) {
+	function PoiList(listId, poiData) {
 		_classCallCheck(this, PoiList);
 
 		this._listId = listId;
@@ -489,34 +564,66 @@ var PoiList = function () {
 		// soon as those events happen.
 		this._subscriptions();
 
-		this._updatePoiList(poiArray);
+		this._updatePoiList(poiData);
 	}
 
 	_createClass(PoiList, [{
-		key: '_updatePoiList',
-		value: function _updatePoiList(poiArray) {
+		key: "_updatePoiList",
+		value: function _updatePoiList(poiData) {
 			document.getElementById(this._listId).innerHTML = "";
-			var listHTML = this._makeListHTML(poiArray);
+			var listHTML = this._createListHTML(poiData);
 			document.getElementById(this._listId).innerHTML = listHTML;
 
-			this._addListEventListeners(poiArray);
+			this._addListEventListeners(poiData);
 		}
 	}, {
-		key: '_makeListHTML',
-		value: function _makeListHTML(poiArray) {
-			var _this = this;
+		key: "_createListHTML",
+		value: function _createListHTML(poiData) {
+			var HTML = void 0;
 
-			var HTML = '';
+			if (poiData.sortedBy === "type") {
+				HTML = this._makeTitledListHTML(poiData);
+			} else {
+				HTML = this._makeListHTML(poiData);
+			}
 
-			poiArray.forEach(function (poiDetail, index) {
-				HTML += _this._makeListItemHTML(poiDetail);
-			});
-
-			HTML += '';
 			return HTML;
 		}
 	}, {
-		key: '_makeListItemHTML',
+		key: "_makeTitledListHTML",
+		value: function _makeTitledListHTML(poiData) {
+			var _this = this;
+
+			var titleData = this._makeDistinctArray(poiData.data);
+			var HTML = '';
+
+			titleData.forEach(function (title, index) {
+				HTML += '<li><ul>';
+				HTML += '<h3 class="pois__title">' + title + '</h3>';
+				poiData.data.forEach(function (poi, index) {
+					if (poi.type === title) {
+						HTML += _this._makeListItemHTML(poi);
+					}
+				});
+			});
+
+			return HTML;
+		}
+	}, {
+		key: "_makeListHTML",
+		value: function _makeListHTML(poiData) {
+			var _this2 = this;
+
+			var HTML = '';
+			console.log(poiData);
+			poiData.data.forEach(function (poiDetail, index) {
+				HTML += _this2._makeListItemHTML(poiDetail);
+			});
+
+			return HTML;
+		}
+	}, {
+		key: "_makeListItemHTML",
 		value: function _makeListItemHTML(poiDetail) {
 			//TODO: make it dynamic!
 			var iconPath = "img/amenity_icons/" + poiDetail.type + "_icon_large.png"; //dynamic
@@ -525,7 +632,7 @@ var PoiList = function () {
 
 			var HTML = '<li class="poi" data-key="' + poiDetail.key + '">';
 			HTML += '<img class="poi__icon" src="' + iconPath + '">';
-			HTML += '<h3 class="poi__title">' + title + '</h3>';
+			HTML += '<h4 class="poi__title">' + title + '</h4>';
 
 			if (typeof poiDetail.distance != 'undefined') {
 				HTML += '<span class="poi__distance">' + poiDetail.distance + 'km from you</span>';
@@ -537,18 +644,21 @@ var PoiList = function () {
 			return HTML;
 		}
 	}, {
-		key: '_addListEventListeners',
-		value: function _addListEventListeners(poiArray) {
+		key: "_addListEventListeners",
+		value: function _addListEventListeners(poiData) {
 			//TODO: refactor
-			var domList = document.getElementById(this._listId).getElementsByTagName('li');
+
+			// Must obtain lis by class name in case the lists are nested
+			var domList = document.getElementById(this._listId).getElementsByClassName('poi');
 
 			[].forEach.call(domList, function (item, index) {
+
 				var key = item.getAttribute('data-key');
 				var poi = void 0;
 
-				for (var i = 0; i < poiArray.length; i++) {
-					if (poiArray[i].key == key.toString()) {
-						poi = poiArray[i];
+				for (var i = 0; i < poiData.data.length; i++) {
+					if (poiData.data[i].key == key.toString()) {
+						poi = poiData.data[i];
 					}
 				}
 
@@ -563,23 +673,42 @@ var PoiList = function () {
 				item.addEventListener('click', function () {
 					_PubSub2.default.publish('markerClicked', poi);
 				});
+				// }
 			});
+		}
+	}, {
+		key: "_makeDistinctArray",
+		value: function _makeDistinctArray(poiData) {
+			// Add the filter array to the object scope.
+			var distinctArray = [];
+
+			// Use a temporary object to store distinct values as keys
+			var temp = {};
+
+			for (var i in poiData) {
+				if (typeof temp[poiData[i].type] == "undefined") {
+					distinctArray.push(poiData[i].type);
+				}
+				temp[poiData[i].type] = 0;
+			}
+
+			return distinctArray;
 		}
 
 		// --------------- PUBSUB INTERFACE ----------------------
 		// Contains all pubSub subscriptions
 
 	}, {
-		key: '_subscriptions',
+		key: "_subscriptions",
 		value: function _subscriptions() {
-			var _this2 = this;
+			var _this3 = this;
 
 			_PubSub2.default.subscribe('markerClicked', function (topic, poi) {
 				// add a little highlight animation?
 			});
 
 			_PubSub2.default.subscribe('dataUpdated', function (topic, newData) {
-				_this2._updatePoiList(newData);
+				_this3._updatePoiList(newData);
 			});
 		}
 	}]);
@@ -777,7 +906,7 @@ var PoiMap = function () {
 		value: function updatePoiMarkers(poiData) {
 			var _this3 = this;
 
-			var pois = poiData;
+			var pois = poiData.data;
 
 			pois.forEach(function (item, index) {
 				item.marker.setMap(_this3._theMap);
@@ -1045,7 +1174,7 @@ var places = [{
 	}
 }, {
 	"name": "Bristol Temple Meads",
-	"type": "Transport",
+	"type": "transport",
 	"description": "Bristol Temple Meads railway station is the oldest and largest railway station in Bristol. It is an important transport hub for public transport, with bus services to many parts of the city and surrounding districts and a ferry to the city centre in addition to the train services",
 	"website_url": "http://www.nationalrail.co.uk/stations/BRI/details.html",
 	"coords": {
@@ -1097,6 +1226,15 @@ var places = [{
 		"lat": 51.4590247,
 		"lng": -2.5878965
 	}
+}, {
+	"name": "Latcham",
+	"type": "entertainment",
+	"description": "",
+	"website_url": "http://www.latchamdirect.co.uk",
+	"coords": {
+		"lat": 51.4179959,
+		"lng": -2.5847738
+	}
 }];
 
 var mainMarker = {
@@ -1130,8 +1268,8 @@ var options = {
 };
 
 var myMap = new _MapsApp2.default('map', _mockdata.mainMarker, _mockdata.places, options);
-
 myMap.createList('js-amenity-list');
 myMap.createFilter('js-filter-controls');
+myMap.createSorter('js-sort-list');
 
 },{"./MapsApp/MapsApp":1,"./data/mockdata":7}]},{},[8]);
