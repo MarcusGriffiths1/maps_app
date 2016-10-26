@@ -107,7 +107,7 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); // TODO: Apply pure functions where possible so code is easy to navigate and reason about
 
 var _PubSub = require('./PubSub');
 
@@ -118,29 +118,36 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var PoiData = function () {
-	function PoiData(array, window) {
+
+	// Takes in data with specific format
+	function PoiData(poiData) {
 		_classCallCheck(this, PoiData);
 
-		this._poiData = this._formatData(array);
+		this._poiData = this._formatData(poiData);
 		this._filterList = [];
+
+		// This property should only ever be a single value
 		this._sortBy = 'type';
 		this._subscribers();
 	}
 
-	// Adds google maps markers and unique keys to each poi
+	// Adds google maps markers and unique keys to each poi in the data
 
 
 	_createClass(PoiData, [{
 		key: '_formatData',
-		value: function _formatData(poiArray) {
+		value: function _formatData(poiData) {
 			var _this = this;
 
-			poiArray.forEach(function (item, index) {
+			poiData.forEach(function (item, index) {
 				item.marker = _this._createMarker(item.coords, null);
 				item.key = index;
 			});
-			return poiArray;
+			return poiData;
 		}
+
+		// Creates and returns a Google maps marker
+
 	}, {
 		key: '_createMarker',
 		value: function _createMarker(position, map) {
@@ -149,13 +156,19 @@ var PoiData = function () {
 				map: map
 			});
 		}
+
+		// Takes all the markers in the data and set's their map property to null
+
 	}, {
 		key: '_resetMarkers',
-		value: function _resetMarkers() {
-			this._poiData.forEach(function (item, index) {
+		value: function _resetMarkers(poiData) {
+			poiData.forEach(function (item, index) {
 				item.marker.setMap(null);
 			});
 		}
+
+		// Utility Function: Finds the index of an item in array
+
 	}, {
 		key: '_indexOf',
 		value: function _indexOf(item, array) {
@@ -168,33 +181,44 @@ var PoiData = function () {
 			}
 			return -1;
 		}
+
+		// Takes a string and an array, if the string is in the array the index
+		// of that string is sent back. Otherwise it is added to the array and
+		// the array is returned.
+		// NOTE: Slices array so original is not mutated
+
 	}, {
 		key: '_toggleFilter',
-		value: function _toggleFilter(filter) {
-			var filterIndex = this._indexOf(filter, this._filterList);
+		value: function _toggleFilter(filter, array) {
+			var filterIndex = this._indexOf(filter, array);
+			var filteredArray = array.slice(0);
 
 			if (filterIndex != -1) {
-				this._filterList.splice(filterIndex, 1);
+				filteredArray.splice(filterIndex, 1);
 			} else {
-				this._filterList.push(filter);
+				filteredArray.push(filter);
 			}
 
-			_PubSub2.default.publish('dataUpdated', this.getPoiData(true));
+			return filteredArray;
 		}
+
+		// Takes an array of poiData, a parameter to filter by and an array of filters to
+		// iterate though. If the filterBy parameter in any item of the data matches with any
+		// of the filters in the filter array, that item is removed from the list.
+		// The filtered data is returned.
+
 	}, {
 		key: '_filterData',
-		value: function _filterData() {
-			var _this2 = this;
-
-			if (!this._filterList.length) {
-				return this._poiData;
+		value: function _filterData(data, filterBy, filterArray) {
+			if (!filterArray.length) {
+				return data;
 			}
 
-			var filteredData = this._poiData.filter(function (item) {
+			var filteredData = data.filter(function (item) {
 				var isNotFiltered = true;
 
-				for (var i = 0; i < _this2._filterList.length; i++) {
-					if (_this2._filterList[i] === item.type) {
+				for (var i = 0; i < filterArray.length; i++) {
+					if (filterArray[i] === item[filterBy]) {
 						isNotFiltered = false;
 					}
 				}
@@ -204,45 +228,53 @@ var PoiData = function () {
 
 			return filteredData;
 		}
+
+		// Adds distance in km from a single point to every poi in the data.
+		// Function needs to have side effects as it performs an async call to Google Distance Matrix
+		// TODO: Google maps only allows 25 requests at a time, fix this!
+		// TODO: Add miles and km functionality (maybe give the distance in meters and work it out in the HTML template)
+
 	}, {
 		key: '_addDistances',
 		value: function _addDistances(markerPositions, currentPos, array) {
-			var _this3 = this;
+			var _this2 = this;
 
 			var fromDest = new google.maps.LatLng(currentPos);
-			var distance = void 0;
 			var dmService = new google.maps.DistanceMatrixService();
+			var distance = void 0;
 
 			dmService.getDistanceMatrix({
 				origins: [fromDest],
 				destinations: markerPositions,
-				travelMode: 'DRIVING'
+				travelMode: 'WALKING'
 			}, function (response, status) {
 				response.rows[0].elements.forEach(function (element, index) {
 					var distanceInMiles = (element.distance.value / 1000).toFixed(1);
 					array[index].distance = distanceInMiles;
 				});
 
-				_PubSub2.default.publish('dataUpdated', _this3.getPoiData());
+				_PubSub2.default.publish('dataUpdated', _this2.getPoiData());
 			});
 		}
+
+		// Takes the poi data and the field to sort by, returns a new array sorted by that field.
+
 	}, {
 		key: '_sortData',
-		value: function _sortData(poiData) {
-			var _this4 = this;
-
+		value: function _sortData(poiData, sortBy) {
 			// No point iterating if there is nothing to sort by
-			if (typeof this._sortBy == 'undefined') {
+			if (typeof sortBy == 'undefined') {
 				return poiData;
 			}
-			// Make sure slice is called on array so as not to mutate the original
-			// If the array is not copied it can cause havoc with async tasks later,
-			// such as adding distances.
+
+			// sort() sorts the array in place. Make sure slice is called on array
+			// so as not to mutate the original. If the array is not copied it can
+			// cause havoc with async tasks later, such as adding distances.
 			var sortedData = poiData.slice(0).sort(function (a, b) {
-				if (a[_this4._sortBy] < b[_this4._sortBy]) {
+				if (a[sortBy] < b[sortBy]) {
 					return -1;
 				}
-				if (a[_this4._sortBy] > b[_this4._sortBy]) {
+				if (a[sortBy] > b[sortBy]) {
 					return 1;
 				}
 				return 0;
@@ -251,22 +283,24 @@ var PoiData = function () {
 			return sortedData;
 		}
 
-		// Icons will be changed within event listeners when the zoom option is applied,
+		// Sets the icon on a map marker, depending on the parameters passed with it.
+		// NOTE:Icons will be changed within event listeners when the zoom option is applied,
 		// which causes problems when feeding parameters to the function (it gets called immediately).
-		// Currying to the rescue, this function is partially applied so needs to be
-		// .call()-ed when used outside of an event listener.
+		// This function is partially applied so needs to be .call()-ed when used outside of an event listener.
 
 	}, {
 		key: '_makeIcon',
 		value: function _makeIcon(marker, type, zoom) {
-			var _this5 = this;
+			var _this3 = this;
 
 			var zIndex = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
 			var anchor = arguments[4];
 
 			return function () {
-				var iconPath = _this5._customMarkersSettings.path;
-				var iconImg = zoom ? _this5._customMarkersSettings.zoom : _this5._customMarkersSettings.icon;
+				var iconPath = _this3._customMarkersSettings.path;
+
+				// If a large version of the icon has been supplied this can be used for things like hover events
+				var iconImg = zoom ? _this3._customMarkersSettings.zoom : _this3._customMarkersSettings.icon;
 
 				var icon = {
 					url: iconPath + type + iconImg + '.png',
@@ -278,66 +312,82 @@ var PoiData = function () {
 				marker.setZIndex(zIndex);
 			};
 		}
+
+		// This function is called if the user wants to create custom markers for the maps
+		// NOTE: Adds listeners to the markers, so not a pure function
+
 	}, {
 		key: '_createCustomMarkers',
-		value: function _createCustomMarkers() {
-			var _this6 = this;
+		value: function _createCustomMarkers(poiData, settings) {
+			var _this4 = this;
 
-			this._poiData.forEach(function (poi, index) {
+			poiData.forEach(function (poi, index) {
 				var type = poi.type;
 				var marker = poi.marker;
 
 				// Set standard icons
-				_this6._makeIcon(marker, type, false).call();
+				_this4._makeIcon(marker, type, false).call();
 
-				if (_this6._customMarkersSettings.zoom) {
-					marker.addListener('mouseover', _this6._makeIcon(marker, type, true, 100, new google.maps.Point(14, 20)));
-					marker.addListener('mouseout', _this6._makeIcon(marker, type, false));
+				if (settings.zoom) {
+					marker.addListener('mouseover', _this4._makeIcon(marker, type, true, 100, new google.maps.Point(14, 20)));
+					marker.addListener('mouseout', _this4._makeIcon(marker, type, false));
 				}
 			});
 		}
+
+		// Adds subscribers to hook into events that are called outside of this object's scope.
+
 	}, {
 		key: '_addCustomMarkerSubscribers',
-		value: function _addCustomMarkerSubscribers() {
-			var _this7 = this;
+		value: function _addCustomMarkerSubscribers(settings) {
+			var _this5 = this;
 
-			_PubSub2.default.subscribe('listItemMouseOver', function (topic, poi) {
-				var type = poi.type;
-				var marker = poi.marker;
-				_this7._makeIcon(marker, type, true, 100, new google.maps.Point(14, 20)).call();
-			});
+			// Only ever called if the ability to zoom icons is enabled
+			if (settings.zoom) {
+				_PubSub2.default.subscribe('listItemMouseOver', function (topic, poi) {
+					var type = poi.type;
+					var marker = poi.marker;
+					// Use larger version of the icons
+					_this5._makeIcon(marker, type, true, 100, new google.maps.Point(14, 20)).call();
+				});
 
-			_PubSub2.default.subscribe('listItemMouseOut', function (topic, poi) {
-				var type = poi.type;
-				var marker = poi.marker;
-				_this7._makeIcon(marker, type, false).call();
-			});
+				_PubSub2.default.subscribe('listItemMouseOut', function (topic, poi) {
+					var type = poi.type;
+					var marker = poi.marker;
+					_this5._makeIcon(marker, type, false).call();
+				});
+			}
 		}
+
+		// Adds subscribers to hook into events that are called outside of this object's scope.
+
 	}, {
 		key: '_subscribers',
 		value: function _subscribers() {
-			var _this8 = this;
+			var _this6 = this;
 
 			_PubSub2.default.subscribe('filterToggled', function (topic, value) {
-				_this8._toggleFilter(value);
+				_this6._filterList = _this6._toggleFilter(value, _this6._filterList);
+				_PubSub2.default.publish('dataUpdated', _this6.getPoiData(true));
 			});
 
 			_PubSub2.default.subscribe('sortToggled', function (topic, value) {
-				_this8._sortBy = value;
-				_PubSub2.default.publish('dataUpdated', _this8.getPoiData(false));
+				_this6._sortBy = value;
+				_PubSub2.default.publish('dataUpdated', _this6.getPoiData(false));
 			});
 		}
 
 		// ---------- PUBLIC INTERFACE ----------
 
+		// Any time data is retrieved from this object it should be called through
+		// this function, no exceptions!
+
 	}, {
 		key: 'getPoiData',
 		value: function getPoiData(resetMarkers) {
-			if (resetMarkers === true) {
-				this._resetMarkers();
-			}
-			var filteredData = this._filterData();
-			var sortedData = this._sortData(filteredData);
+			if (resetMarkers === true) this._resetMarkers(this._poiData);
+			var filteredData = this._filterData(this._poiData, "type", this._filterList);
+			var sortedData = this._sortData(filteredData, this._sortBy);
 
 			var data = {
 				data: sortedData,
@@ -346,22 +396,35 @@ var PoiData = function () {
 
 			return data;
 		}
+
+		// This is functionality that is added later if the user wants to include
+		// an InfoWindow which opens when a marker is clicked.
+
 	}, {
 		key: 'addMarkerClickEvents',
 		value: function addMarkerClickEvents() {
 			this._poiData.forEach(function (poi, index) {
 				poi.marker.addListener('click', function () {
+					// Publish a marker click event in case anything is listening to this
+					// TODO: Add list events when marker clicked
 					_PubSub2.default.publish('markerClicked', poi);
 				});
 			});
 		}
+
+		// This is functionality that is added later if the user wants to include
+		// custom markers and zoom effects when they are hovered over
+
 	}, {
 		key: 'addCustomMarkers',
 		value: function addCustomMarkers(options) {
 			this._customMarkersSettings = options;
-			this._createCustomMarkers();
-			this._addCustomMarkerSubscribers();
+			this._createCustomMarkers(this._poiData, this._customMarkersSettings);
+			this._addCustomMarkerSubscribers(this._customMarkersSettings);
 		}
+
+		// If the showDistance flag is true this function is fired
+
 	}, {
 		key: 'addDistances',
 		value: function addDistances(center) {
