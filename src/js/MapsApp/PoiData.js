@@ -234,7 +234,7 @@ class PoiData {
 			poi.marker.addListener('click', () => {
 				// Publish a marker click event in case anything is listening to this
 				// TODO: Add list events when marker clicked
-				pubSub.publish('markerClicked', poi);
+				pubSub.publish('poiClicked', poi);
 			});
 		});
 	}

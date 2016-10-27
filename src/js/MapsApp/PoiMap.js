@@ -124,7 +124,7 @@ class PoiMap {
 	// --------------- PUBSUB INTERFACE ----------------------
 	// Contains all pubSub subscriptions
 	_subscriptions() {
-		pubSub.subscribe('markerClicked', (topic, poi) => {
+		pubSub.subscribe('poiClicked', (topic, poi) => {
 			this._setInfoWindow(poi);
 		});
 

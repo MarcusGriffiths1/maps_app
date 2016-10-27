@@ -1,3 +1,19 @@
+/*
+*  The PoiList object creates the DOM list of pois and populates them with the data provided.
+*
+*  The data is passed in to populate the DOM elements but is never manipulated here. When instantiated
+*  the object subscribes to an event that fires a re-render whenever the data is manipulated.
+*
+*  Publishers:
+*     listItemMouseOver:
+*	listItemMouseOut:
+*	markerClicked:
+*
+*  Subscribers:
+*	poiClicked:
+*	dataUpdated:
+*/
+
 import pubSub from './PubSub';
 
 class PoiList {
@@ -105,7 +121,7 @@ class PoiList {
 				});
 
 				item.addEventListener('click', () => {
-					pubSub.publish('markerClicked', poi);
+					pubSub.publish('poiClicked', poi);
 				});
 			// }
 
@@ -132,7 +148,7 @@ class PoiList {
 	// --------------- PUBSUB INTERFACE ----------------------
 	// Contains all pubSub subscriptions
 	_subscriptions() {
-		pubSub.subscribe('markerClicked', (topic, poi) => {
+		pubSub.subscribe('poiClicked', (topic, poi) => {
 			// add a little highlight animation?
 		});
 

@@ -407,7 +407,7 @@ var PoiData = function () {
 				poi.marker.addListener('click', function () {
 					// Publish a marker click event in case anything is listening to this
 					// TODO: Add list events when marker clicked
-					_PubSub2.default.publish('markerClicked', poi);
+					_PubSub2.default.publish('poiClicked', poi);
 				});
 			});
 		}
@@ -478,57 +478,67 @@ var PoiFilter = function () {
     _classCallCheck(this, PoiFilter);
 
     this._filterId = filterId;
+    this._filterListDOMElement = document.getElementById(this._filterId);
 
     // Create an array of distinct filters
-    this._setFilterArray(poiData);
+    this._filterArray = this._getDistinctValues(poiData.data, 'type');
     // Create list HTML and populate given DOM element
-    this._createFilterList();
+    this._createFilterList(this._filterArray, this._filterListDOMElement);
     this._addFilterEventListeners();
   }
 
-  // Loop through the given data, find it's 'type' key and add all descrete
+  // Loops through the given data, find it's 'type' key and adds all descrete
   // values to an array, these will act as the values for the filters.
 
 
   _createClass(PoiFilter, [{
-    key: '_setFilterArray',
-    value: function _setFilterArray(poiData) {
+    key: '_getDistinctValues',
+    value: function _getDistinctValues(poiData, field) {
       // Add the filter array to the object scope.
-      this._filterArray = [];
+      var filteredArray = [];
 
       // Use a temporary object to store distinct values as keys
       var temp = {};
 
-      for (var i in poiData.data) {
-        if (typeof temp[poiData.data[i].type] == "undefined") {
-          this._filterArray.push(poiData.data[i].type);
+      for (var i in poiData) {
+        if (typeof temp[poiData[i][field]] == "undefined") {
+          filteredArray.push(poiData[i][field]);
         }
-        temp[poiData.data[i].type] = 0;
+        temp[poiData[i][field]] = 0;
       }
+
+      return filteredArray;
     }
 
-    // Makes the list of filters and displays them in the DOM element
-    // given by the filterId parameter
+    // Makes the list of filters and displays them in the DOM element supplied
 
   }, {
     key: '_createFilterList',
-    value: function _createFilterList() {
-      var filterFormHTML = this._makeFilterFormHTML();
-      document.getElementById(this._filterId).innerHTML = filterFormHTML;
+    value: function _createFilterList(filterArray, wrapperElement) {
+      var filterFormHTML = this._makeFilterFormHTML(filterArray);
+      wrapperElement.innerHTML = filterFormHTML;
     }
+
+    // Iterates through the array of filters and creates HTML elements for
+    // each one.
+
   }, {
     key: '_makeFilterFormHTML',
-    value: function _makeFilterFormHTML() {
+    value: function _makeFilterFormHTML(filterArray) {
       var _this = this;
 
       var HTML = '';
 
-      this._filterArray.forEach(function (item, index) {
+      filterArray.forEach(function (item, index) {
         HTML += _this._makeFilterItemHTML(item);
       });
 
       return HTML;
     }
+
+    // Creates a list item for a single filter item
+    // TODO: Make image dynamic, use callbacks so user can set HTML from outside?
+
   }, {
     key: '_makeFilterItemHTML',
     value: function _makeFilterItemHTML(item) {
@@ -536,18 +546,24 @@ var PoiFilter = function () {
 
       var HTML = '<li class="filters__item">';
       HTML += '<img class="filters__icon" src="' + iconPath + '">';
-      HTML += '<input type="checkbox" id="' + item + '" name="filter" value= "' + item + '" checked>';
+      HTML += '<input type="checkbox" id="' + item + '" name="map-filter" value= "' + item + '" checked>';
       HTML += '<label class="filters__label" for="' + item + '">' + (item.charAt(0).toUpperCase() + item.slice(1)) + '</label>';
       HTML += '</li>';
 
       return HTML;
     }
+
+    // Makes the list of sorters and displays them in the DOM element supplied
+
   }, {
     key: '_createSorterList',
-    value: function _createSorterList(wrapperElement, sorterArray) {
+    value: function _createSorterList(sorterArray, wrapperElement) {
       var sorterListHTML = this._makeSorterHTML(sorterArray);
       wrapperElement.innerHTML = sorterListHTML;
     }
+
+    // Makes an option HTML element for each element in the supplied array
+
   }, {
     key: '_makeSorterHTML',
     value: function _makeSorterHTML(sorterArray) {
@@ -559,6 +575,7 @@ var PoiFilter = function () {
 
       return HTML;
     }
+
     // Fired after all set up is complete, adds event listers to the filter list checkboxes
     // if one is clicked the value of that checkbox is published through the 'filterToggled'
     // event in pubSub
@@ -566,7 +583,7 @@ var PoiFilter = function () {
   }, {
     key: '_addFilterEventListeners',
     value: function _addFilterEventListeners() {
-      var checkboxes = document.getElementsByName('filter');
+      var checkboxes = document.getElementsByName('map-filter');
 
       Array.prototype.forEach.call(checkboxes, function (item) {
         item.addEventListener('change', function () {
@@ -576,6 +593,10 @@ var PoiFilter = function () {
     }
   }, {
     key: '_addSorterEventListeners',
+
+
+    // Fired after all set up is complete for the sorters, add an event lister to the sorter dropdown
+    // if one is clicked the value is published through the 'sorterToggled' event in pubSub
     value: function _addSorterEventListeners(sorterElement) {
       sorterElement.addEventListener('change', function (e) {
         _PubSub2.default.publish('sortToggled', e.target[e.target.selectedIndex].value);
@@ -584,13 +605,16 @@ var PoiFilter = function () {
 
     // ---------- PUBLIC INTERFACE ----------
 
+    // If the user wants to create a filter they can specify in the Public API
+    // and this will be called
+
   }, {
     key: 'createSorter',
     value: function createSorter(sorterId, sortByArray) {
       this._sorterId = sorterId;
-      var sorterElement = document.getElementById(this._sorterId);
-      this._createSorterList(sorterElement, sortByArray);
-      this._addSorterEventListeners(sorterElement);
+      var sorterDOMElement = document.getElementById(this._sorterId);
+      this._createSorterList(sortByArray, sorterDOMElement);
+      this._addSorterEventListeners(sorterDOMElement);
     }
   }]);
 
@@ -606,7 +630,21 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }(); /*
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  The PoiList object creates the DOM list of pois and populates them with the data provided.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  The data is passed in to populate the DOM elements but is never manipulated here. When instantiated
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  the object subscribes to an event that fires a re-render whenever the data is manipulated.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  Publishers:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *     listItemMouseOver:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *	listItemMouseOut:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *	markerClicked:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *  Subscribers:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *	poiClicked:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     *	dataUpdated:
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     */
 
 var _PubSub = require("./PubSub");
 
@@ -734,7 +772,7 @@ var PoiList = function () {
 				});
 
 				item.addEventListener('click', function () {
-					_PubSub2.default.publish('markerClicked', poi);
+					_PubSub2.default.publish('poiClicked', poi);
 				});
 				// }
 			});
@@ -766,7 +804,7 @@ var PoiList = function () {
 		value: function _subscriptions() {
 			var _this3 = this;
 
-			_PubSub2.default.subscribe('markerClicked', function (topic, poi) {
+			_PubSub2.default.subscribe('poiClicked', function (topic, poi) {
 				// add a little highlight animation?
 			});
 
@@ -947,7 +985,7 @@ var PoiMap = function () {
 		value: function _subscriptions() {
 			var _this2 = this;
 
-			_PubSub2.default.subscribe('markerClicked', function (topic, poi) {
+			_PubSub2.default.subscribe('poiClicked', function (topic, poi) {
 				_this2._setInfoWindow(poi);
 			});
 

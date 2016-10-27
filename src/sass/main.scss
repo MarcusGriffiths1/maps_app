@@ -88,7 +88,8 @@ html, body {
     border-bottom: 1px solid darken($primary, 20%);
   }
   &__list {
-    overflow-y: scroll;
+    overflow: scroll;
+    overflow-x: hidden;
     width: 103%;
     height: 100%;
     padding-left: 0;
